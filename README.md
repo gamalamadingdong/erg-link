@@ -72,14 +72,18 @@ cd generator
 npm install
 npm run build
 
-# Run the CLI (from generator directory)
-node dist/index.js my-app
+# IMPORTANT: Navigate back to parent directory before running
+# (to avoid circular copy errors)
+cd ..
+
+# Run the CLI to create project as sibling directory
+node sge-starter/generator/dist/index.js my-app
+
+# Or use absolute path for output location
+node sge-starter/generator/dist/index.js c:\path\to\my-app
 
 # Or run interactively
-node dist/index.js
-
-# With options
-node dist/index.js my-app --no-mobile --no-subscriptions --pm npm
+node sge-starter/generator/dist/index.js
 ```
 
 **After publishing to npm, you'll be able to use:**
