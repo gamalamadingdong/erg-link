@@ -1,0 +1,40 @@
+# {{PROJECT_NAME}} Documentation
+
+## Getting Started
+
+- [Quick Start Guide](../README.md) - Installation and setup
+- [Development Workflow](development.md) - Local development process
+- [Deployment Guide](deployment.md) - Production deployment
+
+## Architecture
+
+- [Project Structure](architecture.md) - Overall project organization
+- [Database Schema](../infra/schema/README.md) - Data models and relationships{{#includeAuth}}
+- [Authentication Flow](../packages/functions/auth/README.md) - User management{{/includeAuth}}{{#includeSubscriptions}}
+- [Subscription System](../packages/functions/subscriptions/README.md) - Stripe integration{{/includeSubscriptions}}{{#includeNotifications}}
+- [Notification System](../packages/functions/notifications/README.md) - Multi-channel notifications{{/includeNotifications}}
+
+## Development
+
+- [Component Guidelines](components.md) - UI component standards
+- [State Management](state-management.md) - Data flow patterns
+- [API Integration](api-integration.md) - External service integration{{#includeMobile}}
+- [Mobile Development](mobile.md) - iOS and Android specific guidance{{/includeMobile}}
+- [Testing Strategy](testing.md) - Testing approaches and tools
+
+## Operations
+
+- [Environment Setup](environment.md) - Configuration management
+- [Monitoring](monitoring.md) - Application monitoring and alerting
+- [Security](security.md) - Security best practices
+- [Performance](performance.md) - Optimization guidelines
+
+## Contributing
+
+- [Code Standards](code-standards.md) - Coding conventions
+- [Pull Request Process](pull-request-process.md) - Contribution workflow
+- [Release Process](release-process.md) - Deployment and versioning
+
+---
+
+**Note**: This documentation is automatically generated from the SGE Starter Template. Customize these guides based on your specific project needs and requirements.

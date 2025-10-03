@@ -1,0 +1,204 @@
+# Product Requirements Document (PRD)
+
+## Product Overview
+
+### Vision Statement
+*What is the core vision for {{PROJECT_NAME}}?*
+
+### Problem Statement
+*What problem are we solving? For whom?*
+
+### Solution Overview
+*How does {{PROJECT_NAME}} solve this problem?*
+
+### Success Metrics
+*How will we measure success?*
+
+## Target Users
+
+### Primary User Personas
+1. **[Persona 1 Name]**
+   - Demographics:
+   - Goals:
+   - Pain Points:
+   - How they'll use the product:
+
+2. **[Persona 2 Name]**
+   - Demographics:
+   - Goals:
+   - Pain Points:
+   - How they'll use the product:
+
+## Features & Requirements
+
+### Core Features (MVP)
+- [ ] **Feature 1:** [Description and user value]
+- [ ] **Feature 2:** [Description and user value]
+- [ ] **Feature 3:** [Description and user value]
+
+### User Stories
+1. **As a [user type]**, I want to [action] so that [benefit]
+2. **As a [user type]**, I want to [action] so that [benefit]
+3. **As a [user type]**, I want to [action] so that [benefit]
+
+### Feature Prioritization
+| Feature | Priority | Effort | Impact | MVP |
+|---------|----------|--------|--------|-----|
+| Feature 1 | High | Medium | High | ✅ |
+| Feature 2 | High | Low | High | ✅ |
+| Feature 3 | Medium | High | Medium | ❌ |
+
+### Detailed Feature Specifications
+
+#### Feature 1: [Name]
+- **User Story:** As a [user], I want to [action] so that [benefit]
+- **Acceptance Criteria:**
+  - [ ] Criteria 1
+  - [ ] Criteria 2
+  - [ ] Criteria 3
+- **Technical Requirements:**
+  - API endpoints needed
+  - Data models required
+  - UI components needed
+- **Success Metrics:**
+  - How will we measure this feature's success?
+
+#### Feature 2: [Name]
+- **User Story:** As a [user], I want to [action] so that [benefit]
+- **Acceptance Criteria:**
+  - [ ] Criteria 1
+  - [ ] Criteria 2
+- **Technical Requirements:**
+  - Implementation details
+- **Success Metrics:**
+  - Key performance indicators
+
+## Technical Architecture
+
+### Tech Stack (Inherited from SGE Template)
+- ✅ **Frontend:** React 18 + TypeScript + Vite
+- ✅ **Backend:** Supabase (PostgreSQL + Auth + Edge Functions){{#includeMobile}}
+- ✅ **Mobile:** Capacitor (iOS/Android){{/includeMobile}}{{#includeSubscriptions}}
+- ✅ **Payments:** Stripe{{/includeSubscriptions}}{{#includeNotifications}}
+- ✅ **Email:** {{#resendEmail}}Resend{{/resendEmail}}{{#sendgridEmail}}SendGrid{{/sendgridEmail}}{{/includeNotifications}}
+
+### Custom Components Needed
+- [ ] Custom component 1
+- [ ] Custom component 2
+- [ ] Custom component 3
+
+### Data Models
+*Define your domain-specific data models here*
+
+```sql
+-- Example custom table
+CREATE TABLE custom_entity (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  -- Add your columns
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### API Endpoints
+*Document custom API endpoints beyond the SGE template*
+
+- `POST /api/custom-endpoint` - Description
+- `GET /api/data` - Description
+
+### Integration Requirements
+- [ ] Integration 1: [Purpose, API docs link]
+- [ ] Integration 2: [Purpose, API docs link]
+
+## Design Requirements
+
+### UI/UX Considerations
+- [ ] Mobile-first responsive design
+- [ ] Accessibility (WCAG 2.1 AA compliance)
+- [ ] Brand guidelines and design system
+- [ ] User onboarding flow
+
+### Key Screens/Pages
+1. **Landing Page** - First impression and value proposition
+2. **Dashboard** - Main application interface
+3. **[Custom Screen]** - Specific to your app
+4. **Settings** - User preferences and configuration
+
+### User Experience Flow
+```
+Landing Page → Sign Up → Onboarding → Dashboard → Core Feature → Success State
+```
+
+## Non-Functional Requirements
+
+### Performance
+- [ ] Page load time < 2 seconds
+- [ ] API response time < 500ms
+- [ ] Support for 1000+ concurrent users{{#includeMobile}}
+- [ ] Mobile app launch time < 3 seconds{{/includeMobile}}
+
+### Security
+- [ ] Authentication required for sensitive operations
+- [ ] Data encryption at rest and in transit
+- [ ] GDPR compliance (if applicable)
+- [ ] Regular security audits
+
+### Scalability
+- [ ] Horizontal scaling capability
+- [ ] Database optimization and indexing
+- [ ] CDN for static assets
+- [ ] Caching strategy
+
+### Reliability
+- [ ] 99.9% uptime SLA
+- [ ] Automated backups
+- [ ] Error monitoring and alerting
+- [ ] Graceful error handling
+
+## Launch Strategy
+
+### Go-to-Market Plan
+- [ ] Beta testing phase
+- [ ] Launch marketing campaign
+- [ ] User acquisition strategy
+- [ ] Community building
+
+### Success Metrics & KPIs
+- [ ] User acquisition rate
+- [ ] User retention (Day 1, 7, 30)
+- [ ] Feature adoption rates
+- [ ] Customer satisfaction scores{{#includeSubscriptions}}
+- [ ] Revenue metrics (MRR, churn rate){{/includeSubscriptions}}
+
+### Post-Launch Roadmap
+- **Week 1-2:** Monitor launch metrics, fix critical issues
+- **Month 1:** Gather user feedback, iterate on core features
+- **Month 2-3:** Add requested features, optimize performance
+- **Month 4+:** Scale user base, add advanced features
+
+## AI Assistant Collaboration
+
+### PRD Development Prompts
+Use these prompts with your AI assistant:
+
+```
+Help me refine the PRD for {{PROJECT_NAME}}. 
+
+Current concept: [Describe your app concept]
+Target users: [Describe your target users]
+Key problems: [List main problems you're solving]
+
+I need help with:
+1. Defining clear user stories and acceptance criteria
+2. Prioritizing features for MVP vs future releases
+3. Identifying potential technical challenges
+4. Creating realistic success metrics
+
+Please review my PRD draft and suggest improvements.
+```
+
+---
+**Status:** 🔨 In Progress  
+**Last Updated:** {{GENERATION_DATE}}  
+**Next Review:** [Schedule regular PRD reviews]  
+**Stakeholders:** [List key stakeholders for approval]

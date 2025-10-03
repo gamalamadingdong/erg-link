@@ -1,0 +1,263 @@
+# Critical Requirements & Specifications
+
+## Critical Success Factors
+
+### Must-Have Requirements
+*These requirements are non-negotiable for launch*
+
+#### Core Functionality
+- [ ] **User Authentication:** Secure signup/login with email verification
+- [ ] **Data Persistence:** Reliable data storage and retrieval
+- [ ] **Responsive Design:** Works perfectly on mobile and desktop
+- [ ] **Security:** All sensitive data protected with proper authentication{{#includeSubscriptions}}
+- [ ] **Payment Processing:** Secure subscription/payment handling{{/includeSubscriptions}}
+
+#### Performance Requirements
+- [ ] **Page Load Time:** < 3 seconds on 3G connection
+- [ ] **Time to Interactive:** < 5 seconds on mobile
+- [ ] **Core Web Vitals:** All metrics in "Good" range
+- [ ] **Uptime:** 99.9% availability SLA
+
+#### Security Requirements
+- [ ] **Data Encryption:** All data encrypted at rest and in transit
+- [ ] **Authentication:** Multi-factor authentication available
+- [ ] **Authorization:** Proper role-based access control
+- [ ] **GDPR Compliance:** User data export and deletion capabilities
+
+{{#includeMobile}}
+#### Mobile Requirements
+- [ ] **Native Performance:** Smooth animations and interactions
+- [ ] **Offline Capability:** Core features work without internet
+- [ ] **Platform Guidelines:** Follows iOS and Android design guidelines
+- [ ] **App Store Compliance:** Meets all store requirements for publishing
+{{/includeMobile}}
+
+### Nice-to-Have Features
+*These features can be added post-launch*
+
+- [ ] **Advanced Analytics:** Detailed user behavior tracking
+- [ ] **API Access:** Public API for third-party integrations
+- [ ] **White-labeling:** Customizable branding options
+- [ ] **Advanced Automation:** Complex workflow automation
+
+## Technical Constraints
+
+### Technology Constraints
+- **Framework:** Must use React with TypeScript
+- **Database:** Must use PostgreSQL (via Supabase)
+- **Authentication:** Must use Supabase Auth
+- **Hosting:** Must be deployable to Vercel{{#includeMobile}}
+- **Mobile:** Must support iOS 14+ and Android 8+{{/includeMobile}}
+
+### Business Constraints
+- **Budget:** Development budget considerations
+- **Timeline:** Launch deadline requirements
+- **Team Size:** Available development resources
+- **Compliance:** Industry-specific regulatory requirements
+
+### Integration Constraints
+{{#includeSubscriptions}}
+- **Payment Provider:** Must integrate with Stripe
+- **Subscription Model:** Must support recurring billing{{/includeSubscriptions}}{{#includeNotifications}}
+- **Email Provider:** Must integrate with {{#resendEmail}}Resend{{/resendEmail}}{{#sendgridEmail}}SendGrid{{/sendgridEmail}}
+- **Notification System:** Must support email notifications{{/includeNotifications}}
+
+## User Experience Requirements
+
+### Accessibility Standards
+- [ ] **WCAG 2.1 AA Compliance:** All interactive elements accessible
+- [ ] **Keyboard Navigation:** Full app usable without mouse
+- [ ] **Screen Reader Support:** Proper ARIA labels and semantic HTML
+- [ ] **Color Contrast:** Minimum 4.5:1 contrast ratio
+- [ ] **Font Scaling:** Readable at 200% zoom
+
+### Mobile-First Design
+- [ ] **Touch Targets:** Minimum 44px touch targets
+- [ ] **Thumb Navigation:** Easy one-handed use
+- [ ] **Loading States:** Clear feedback during operations
+- [ ] **Error Handling:** User-friendly error messages
+- [ ] **Offline UX:** Graceful degradation without internet
+
+### Performance Standards
+- [ ] **First Contentful Paint:** < 2 seconds
+- [ ] **Largest Contentful Paint:** < 3 seconds
+- [ ] **Cumulative Layout Shift:** < 0.1
+- [ ] **First Input Delay:** < 100ms
+
+## Data Requirements
+
+### Data Models
+*Critical data structures that must be supported*
+
+```typescript
+// Example: Core user data model
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+  preferences: UserPreferences;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface UserPreferences {
+  theme: 'light' | 'dark' | 'system';
+  notifications: NotificationSettings;
+  privacy: PrivacySettings;
+}
+```
+
+### Data Validation Rules
+- [ ] **Email Format:** RFC 5322 compliant email validation
+- [ ] **Password Strength:** Minimum 8 characters with complexity requirements
+- [ ] **Input Sanitization:** All user inputs sanitized to prevent XSS
+- [ ] **File Upload Limits:** Maximum file sizes and allowed types
+
+### Data Retention & Privacy
+- [ ] **Data Minimization:** Only collect necessary data
+- [ ] **Retention Policy:** Clear data retention timeframes
+- [ ] **User Control:** Users can export and delete their data
+- [ ] **Anonymization:** Personal data anonymized where possible
+
+## Integration Requirements
+
+### Third-Party Services
+{{#includeSubscriptions}}
+#### Stripe Integration
+- [ ] **Subscription Management:** Create, update, cancel subscriptions
+- [ ] **Webhook Handling:** Process all relevant Stripe events
+- [ ] **PCI Compliance:** Never store credit card data
+- [ ] **Multi-currency:** Support for multiple currencies if needed
+{{/includeSubscriptions}}
+
+{{#includeNotifications}}
+#### Email Service Integration
+- [ ] **Transactional Emails:** Order confirmations, password resets
+- [ ] **Marketing Emails:** Newsletter and promotional content
+- [ ] **Email Templates:** Branded, responsive email templates
+- [ ] **Deliverability:** High inbox delivery rates
+{{/includeNotifications}}
+
+#### Supabase Integration
+- [ ] **Real-time Updates:** Live data synchronization
+- [ ] **File Storage:** Secure file upload and management
+- [ ] **Database Backups:** Automated backup and recovery
+- [ ] **Row Level Security:** Proper data isolation
+
+### API Requirements
+- [ ] **Rate Limiting:** Prevent API abuse
+- [ ] **Versioning:** Support for API version management
+- [ ] **Documentation:** Complete API documentation
+- [ ] **Error Codes:** Consistent error response format
+
+## Quality Assurance Standards
+
+### Testing Requirements
+- [ ] **Unit Test Coverage:** Minimum 80% code coverage
+- [ ] **Integration Tests:** All API endpoints tested
+- [ ] **E2E Tests:** Critical user flows automated
+- [ ] **Performance Tests:** Load testing for expected traffic{{#includeMobile}}
+- [ ] **Mobile Testing:** Cross-platform compatibility verified{{/includeMobile}}
+
+### Code Quality Standards
+- [ ] **TypeScript Strict Mode:** No `any` types allowed
+- [ ] **ESLint Compliance:** All linting rules followed
+- [ ] **Code Reviews:** All code reviewed before merge
+- [ ] **Documentation:** All public APIs documented
+
+### Monitoring Requirements
+- [ ] **Error Tracking:** Real-time error monitoring
+- [ ] **Performance Monitoring:** Application performance metrics
+- [ ] **Uptime Monitoring:** Service availability tracking
+- [ ] **User Analytics:** User behavior and conversion tracking
+
+## Launch Criteria
+
+### Pre-Launch Checklist
+- [ ] **Security Audit:** Independent security review completed
+- [ ] **Performance Testing:** Load testing under expected traffic
+- [ ] **User Acceptance Testing:** End-user testing completed
+- [ ] **Documentation:** User guides and help documentation ready
+- [ ] **Support System:** Customer support processes in place{{#includeMobile}}
+- [ ] **App Store Approval:** iOS and Android apps approved{{/includeMobile}}
+
+### Post-Launch Monitoring
+- [ ] **Error Rates:** < 0.1% error rate in first week
+- [ ] **Response Times:** Maintain performance standards under load
+- [ ] **User Feedback:** Collect and respond to user feedback
+- [ ] **Feature Usage:** Monitor adoption of key features
+
+## Risk Assessment & Mitigation
+
+### Technical Risks
+| Risk | Impact | Probability | Mitigation |
+|------|---------|-------------|------------|
+| Supabase service outage | High | Low | Implement graceful degradation |
+| Performance under load | Medium | Medium | Load testing and optimization |
+| Security vulnerability | High | Low | Regular security audits |{{#includeSubscriptions}}
+| Stripe integration issues | High | Low | Comprehensive testing |{{/includeSubscriptions}}
+
+### Business Risks
+| Risk | Impact | Probability | Mitigation |
+|------|---------|-------------|------------|
+| Delayed launch | Medium | Medium | Phased release approach |
+| Feature creep | Medium | High | Strict scope management |
+| User adoption | High | Medium | User testing and feedback |
+| Competition | Medium | High | Unique value proposition |
+
+## Compliance & Legal Requirements
+
+### Data Protection
+- [ ] **GDPR Compliance:** If serving EU users
+- [ ] **CCPA Compliance:** If serving California users
+- [ ] **Privacy Policy:** Clear privacy policy published
+- [ ] **Terms of Service:** Comprehensive terms published
+
+### Industry Standards
+- [ ] **PCI DSS:** If processing payments directly
+- [ ] **SOC 2:** If handling sensitive business data
+- [ ] **HIPAA:** If handling health information
+- [ ] **Industry-Specific:** Any relevant industry regulations
+
+## AI Development Assistance
+
+### Critical Requirements Analysis Prompt
+
+```
+Analyze the critical requirements for {{PROJECT_NAME}} and help identify potential issues.
+
+Context:
+- Target users: [describe primary users]
+- Core functionality: [describe main features]
+- Technical stack: React + Supabase + TypeScript
+- Launch timeline: [timeline]
+
+Please review these requirements and:
+1. Identify any missing critical requirements
+2. Flag potential technical risks
+3. Suggest requirement prioritization
+4. Recommend testing strategies for high-risk areas
+
+Focus on requirements that could cause post-launch failures if not properly addressed.
+```
+
+### Requirements Validation Checklist
+
+```
+For each requirement listed above:
+□ Is it measurable/testable?
+□ Is it technically feasible with chosen stack?
+□ Is it aligned with user needs?
+□ Does it have clear acceptance criteria?
+□ Are dependencies identified?
+□ Is the priority level appropriate?
+```
+
+---
+**Status:** 🔨 In Progress  
+**Last Updated:** {{GENERATION_DATE}}  
+**Business Owner:** [Name]  
+**Technical Lead:** [Name]  
+**Next Review:** [Schedule regular requirement reviews]

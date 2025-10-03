@@ -1,0 +1,64 @@
+# Market Research
+
+## Target Market Analysis
+
+### Market Size & Opportunity
+- [ ] Total Addressable Market (TAM)
+- [ ] Serviceable Addressable Market (SAM)
+- [ ] Serviceable Obtainable Market (SOM)
+
+### Target Audience
+- [ ] Primary user personas
+- [ ] User demographics
+- [ ] User pain points
+- [ ] Current solutions they use
+
+### Competitive Analysis
+- [ ] Direct competitors
+- [ ] Indirect competitors
+- [ ] Competitive advantages
+- [ ] Market gaps
+
+### Market Trends
+- [ ] Industry trends
+- [ ] Technology trends
+- [ ] Regulatory considerations
+
+## Research Notes
+
+*Use this section to gather insights from your AI-assisted research sessions.*
+
+### Example AI Prompt for Market Research:
+```
+I'm building {{PROJECT_NAME}}, a [describe your application type] for [target audience]. 
+Help me research:
+1. Market size and opportunity in [your industry/niche]
+2. Key competitors and their strengths/weaknesses
+3. Target user personas and their pain points
+4. Market trends that could impact my product
+5. Potential market gaps or opportunities
+
+Please provide specific data and insights where possible.
+```
+
+## Key Findings
+
+### Market Opportunity
+*Document your key findings about market size and opportunity*
+
+### Target Users
+*Describe your primary target users and their characteristics*
+
+### Competitive Landscape
+*Summarize the competitive environment and your positioning*
+
+### Market Validation
+- [ ] Conducted user interviews
+- [ ] Analyzed competitor reviews
+- [ ] Researched industry reports
+- [ ] Validated problem-solution fit
+
+---
+**Status:** 🔨 In Progress  
+**Last Updated:** {{GENERATION_DATE}}  
+**Next Steps:** Complete user interviews and competitive analysis

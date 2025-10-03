@@ -1,0 +1,195 @@
+# {{PROJECT_NAME}}
+
+> Built with the [SGE Starter Template](https://github.com/gamalamadingdong/sge-starter) for rapid application development
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm, yarn, or pnpm
+- [Supabase CLI](https://supabase.com/docs/guides/cli) (for backend){{#includeMobile}}
+- Xcode (for iOS development)
+- Android Studio (for Android development){{/includeMobile}}
+
+### Installation
+
+```bash
+# Install dependencies
+{{PACKAGE_MANAGER}} install
+
+# Set up your environment
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+### Configuration
+
+Edit `.env` with your service configurations:
+
+```bash
+# Required: Supabase
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key{{#includeSubscriptions}}
+
+# Stripe (for subscriptions)
+STRIPE_SECRET_KEY=your_stripe_secret_key
+VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+STRIPE_WEBHOOK_SECRET=your_webhook_secret{{/includeSubscriptions}}{{#includeNotifications}}{{#resendEmail}}
+
+# Resend (for email)
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL=noreply@yourdomain.com{{/resendEmail}}{{#sendgridEmail}}
+
+# SendGrid (for email)
+SENDGRID_API_KEY=your_sendgrid_api_key
+SENDGRID_FROM_EMAIL=noreply@yourdomain.com{{/sendgridEmail}}{{/includeNotifications}}
+```
+
+### Database Setup
+
+1. Create a new Supabase project at [supabase.com](https://supabase.com)
+2. Run the database migrations:
+
+```bash
+# Initialize Supabase locally
+supabase init
+
+# Link to your project
+supabase link --project-ref your-project-ref
+
+# Push database schema
+supabase db push
+
+# Deploy Edge Functions
+supabase functions deploy
+```
+
+### Development
+
+```bash
+# Start development server
+{{PACKAGE_MANAGER}} run dev
+
+# Open http://localhost:5173
+```{{#includeMobile}}
+
+### Mobile Development
+
+```bash
+# Set up mobile platforms (first time only)
+{{PACKAGE_MANAGER}} run mobile:setup
+
+# iOS Development
+{{PACKAGE_MANAGER}} run ios:dev
+
+# Android Development  
+{{PACKAGE_MANAGER}} run android:dev
+```{{/includeMobile}}
+
+## 📁 Project Structure
+
+```
+{{PROJECT_NAME}}/
+├── packages/
+│   ├── shared/          # Shared utilities and hooks
+│   ├── ui/              # Reusable UI components
+│   ├── web/             # Web application{{#includeMobile}}
+│   └── mobile/          # Mobile-specific code{{/includeMobile}}
+├── packages/functions/  # Supabase Edge Functions{{#includeAuth}}
+│   ├── auth/            # Authentication functions{{/includeAuth}}{{#includeNotifications}}
+│   ├── notifications/   # Notification system{{/includeNotifications}}{{#includeSubscriptions}}
+│   └── subscriptions/   # Stripe subscription management{{/includeSubscriptions}}
+├── infra/
+│   └── schema/          # Database schema and migrations
+├── scripts/             # Build and utility scripts
+└── docs/                # Project documentation
+```
+
+## 🛠️ Available Scripts
+
+### Development
+- `{{PACKAGE_MANAGER}} run dev` - Start development server
+- `{{PACKAGE_MANAGER}} run build` - Build for production
+- `{{PACKAGE_MANAGER}} run preview` - Preview production build
+- `{{PACKAGE_MANAGER}} run lint` - Run ESLint
+- `{{PACKAGE_MANAGER}} run test` - Run tests{{#includeMobile}}
+
+### Mobile
+- `{{PACKAGE_MANAGER}} run mobile:setup` - Initialize mobile platforms
+- `{{PACKAGE_MANAGER}} run ios:dev` - Run iOS development build
+- `{{PACKAGE_MANAGER}} run android:dev` - Run Android development build
+- `{{PACKAGE_MANAGER}} run mobile:sync` - Sync web changes to mobile{{/includeMobile}}
+
+### Database & Functions
+- `{{PACKAGE_MANAGER}} run db:push` - Push schema changes to Supabase
+- `{{PACKAGE_MANAGER}} run deploy:functions` - Deploy Edge Functions
+
+## 🏗️ Built With SGE Template
+
+This project uses the SGE (Scalable Growth Engine) Template, which provides:
+
+- ✅ **Modern Tech Stack**: React 18, TypeScript, Vite, Tailwind CSS
+- ✅ **Backend as a Service**: Supabase (PostgreSQL, Auth, Edge Functions, Realtime){{#includeMobile}}
+- ✅ **Cross-Platform Mobile**: Capacitor for native iOS/Android apps{{/includeMobile}}
+- ✅ **Component Library**: Shadcn/ui with Tailwind CSS{{#includeAuth}}
+- ✅ **Authentication**: Complete user management with Supabase Auth{{/includeAuth}}{{#includeSubscriptions}}
+- ✅ **Subscription Management**: Stripe integration with webhook handling{{/includeSubscriptions}}{{#includeNotifications}}
+- ✅ **Multi-Channel Notifications**: Email, push, and in-app notifications{{/includeNotifications}}
+- ✅ **Development Tools**: Hot reload, TypeScript, ESLint, testing setup
+
+## 📚 Documentation
+
+### Core Features{{#includeAuth}}
+- [Authentication System](packages/functions/auth/README.md) - User management and auth flows{{/includeAuth}}{{#includeNotifications}}
+- [Notification System](packages/functions/notifications/README.md) - Multi-channel notifications{{/includeNotifications}}{{#includeSubscriptions}}
+- [Subscription Management](packages/functions/subscriptions/README.md) - Stripe integration{{/includeSubscriptions}}
+- [Database Schema](infra/schema/README.md) - Data models and relationships
+- [Shared Components](packages/shared/README.md) - Reusable utilities and hooks
+- [UI Components](packages/ui/README.md) - Component library
+
+### Development Guides
+- [Build Scripts](scripts/README.md) - Development and build utilities{{#includeMobile}}
+- [Mobile Development](docs/mobile.md) - iOS and Android app development{{/includeMobile}}
+- [Deployment](docs/deployment.md) - Production deployment guide
+
+## 🚀 Deployment
+
+### Web Application
+The web app is optimized for deployment to:
+- **Vercel** (recommended)
+- **Netlify**  
+- **AWS Amplify**
+- Any static hosting service{{#includeMobile}}
+
+### Mobile Applications
+- **iOS**: Build and deploy to App Store using Xcode
+- **Android**: Build and deploy to Google Play using Android Studio{{/includeMobile}}
+
+See [deployment documentation](docs/deployment.md) for detailed instructions.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- [SGE Starter Template](https://github.com/gamalamadingdong/sge-starter)
+- [Supabase Documentation](https://supabase.com/docs)
+- [React Documentation](https://react.dev)
+- [Tailwind CSS](https://tailwindcss.com){{#includeMobile}}
+- [Capacitor Documentation](https://capacitorjs.com){{/includeMobile}}{{#includeSubscriptions}}
+- [Stripe Documentation](https://stripe.com/docs){{/includeSubscriptions}}
+
+---
+
+**Built with ❤️ using the SGE Starter Template**

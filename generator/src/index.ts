@@ -96,11 +96,18 @@ async function runInteractivePrompts(): Promise<ProjectConfig> {
     {
       type: 'input',
       name: 'projectName',
-      message: 'Project name:',
+      message: 'Project name or path:',
       default: (answers: any) => answers.projectType === 'migration' ? 'my-legacy-migration' : 'my-sge-app',
       validate: (input: string) => {
         if (!input) return 'Project name is required';
-        if (!/^[a-z0-9-]+$/.test(input)) return 'Project name must be lowercase with hyphens only';
+        
+        // Extract the actual project name from the path
+        const projectName = path.basename(path.resolve(input));
+        
+        if (!/^[a-z0-9-_]+$/i.test(projectName)) {
+          return 'Project name must contain only letters, numbers, hyphens, and underscores';
+        }
+        
         return true;
       }
     },
@@ -190,9 +197,14 @@ async function runInteractivePrompts(): Promise<ProjectConfig> {
     answers.emailProvider = 'none';
   }
 
+  // Handle path separation: if projectName contains path separators, extract directory name
+  const resolvedPath = path.resolve(process.cwd(), answers.projectName);
+  const extractedProjectName = path.basename(resolvedPath);
+  
   return {
     ...answers,
-    projectPath: path.resolve(process.cwd(), answers.projectName)
+    projectName: extractedProjectName,
+    projectPath: resolvedPath
   } as ProjectConfig;
 }
 
@@ -259,18 +271,18 @@ async function collectConfiguration(config: ProjectConfig): Promise<ProjectConfi
 }
 
 /**
- * Clone the template repository to the target directory
+ * Create new project from template
  */
-async function cloneTemplate(config: ProjectConfig, spinner: Ora): Promise<void> {
-  spinner.text = 'Cloning template repository...';
+async function createNewAppProject(config: ProjectConfig, spinner: Ora): Promise<void> {
+  spinner.text = 'Creating project from template...';
   
   try {
-    // Get the template directory (parent of generator)
-    const templateDir = path.resolve(__dirname, '../..');
+    // Get the template directory
+    const templateDir = path.resolve(__dirname, '../templates/new-app');
     
     // Validate: prevent copying template into subdirectory of itself
     const absoluteProjectPath = path.resolve(config.projectPath);
-    const absoluteTemplateDir = path.resolve(templateDir);
+    const absoluteTemplateDir = path.resolve(__dirname, '../..');
     
     if (absoluteProjectPath.startsWith(absoluteTemplateDir)) {
       throw new Error(
@@ -287,33 +299,136 @@ async function cloneTemplate(config: ProjectConfig, spinner: Ora): Promise<void>
     // Copy template files
     await fs.copy(templateDir, config.projectPath, {
       filter: (src: string) => {
-        const relativePath = path.relative(templateDir, src);
+        const fileName = path.basename(src);
         
-        // Exclude
-        if (relativePath.includes('node_modules')) return false;
-        if (relativePath.includes('.git')) return false;
-        if (relativePath.includes('dist')) return false;
-        if (relativePath.startsWith('generator')) return false;
+        // Skip template files (they'll be processed separately)
+        if (fileName.endsWith('.template')) return false;
         
         return true;
       }
     });
     
-    spinner.succeed('Template cloned successfully');
+    spinner.succeed('Project structure created');
   } catch (error: any) {
-    spinner.fail('Failed to clone template');
-    throw new Error(`Clone error: ${error.message}`);
+    spinner.fail('Failed to create project');
+    throw new Error(`Project creation error: ${error.message}`);
   }
 }
 
 /**
- * Generate .env file with configuration
+ * Process template files with variable substitution
+ */
+async function processTemplateFiles(config: ProjectConfig, spinner: Ora): Promise<void> {
+  spinner.text = 'Processing template files...';
+  
+  try {
+    const templateDir = path.resolve(__dirname, '../templates/new-app');
+    const templateFiles = [
+      'package.json.template',
+      'README.md.template',
+      '.env.example.template',
+      '.github/instructions/copilot-instructions.md.template',
+      'docs/README.md.template',
+      'docs/planning/README.md.template',
+      'docs/planning/market-research.md.template',
+      'docs/planning/product-requirements.md.template',
+      'docs/planning/technical-specification.md.template',
+      'docs/planning/critical-requirements.md.template',
+      'packages/web/package.json.template',
+      'packages/web/src/App.tsx.template',
+      'packages/web/index.html.template'
+    ];
+    
+    for (const templateFile of templateFiles) {
+      const templatePath = path.join(templateDir, templateFile);
+      const outputPath = path.join(config.projectPath, templateFile.replace('.template', ''));
+      
+      if (await fs.pathExists(templatePath)) {
+        let content = await fs.readFile(templatePath, 'utf8');
+        
+        // Perform variable substitution
+        content = content
+          .replace(/{{PROJECT_NAME}}/g, config.projectName)
+          .replace(/{{PACKAGE_MANAGER}}/g, config.packageManager)
+          .replace(/{{GENERATION_DATE}}/g, new Date().toISOString().split('T')[0]);
+        
+        // Handle conditional sections
+        content = processConditionalSections(content, config);
+        
+        // Ensure output directory exists
+        await fs.ensureDir(path.dirname(outputPath));
+        
+        // Write processed file
+        await fs.writeFile(outputPath, content);
+      }
+    }
+    
+    spinner.succeed('Template files processed');
+  } catch (error: any) {
+    spinner.fail('Failed to process templates');
+    throw new Error(`Template processing error: ${error.message}`);
+  }
+}
+
+/**
+ * Process conditional sections in template files
+ */
+function processConditionalSections(content: string, config: ProjectConfig): string {
+  // Handle includeMobile sections
+  if (config.includeMobile) {
+    content = content.replace(/{{#includeMobile}}([\s\S]*?){{\/includeMobile}}/g, '$1');
+  } else {
+    content = content.replace(/{{#includeMobile}}[\s\S]*?{{\/includeMobile}}/g, '');
+  }
+  
+  // Handle includeSubscriptions sections
+  if (config.includeSubscriptions) {
+    content = content.replace(/{{#includeSubscriptions}}([\s\S]*?){{\/includeSubscriptions}}/g, '$1');
+  } else {
+    content = content.replace(/{{#includeSubscriptions}}[\s\S]*?{{\/includeSubscriptions}}/g, '');
+  }
+  
+  // Handle includeNotifications sections
+  if (config.includeNotifications) {
+    content = content.replace(/{{#includeNotifications}}([\s\S]*?){{\/includeNotifications}}/g, '$1');
+  } else {
+    content = content.replace(/{{#includeNotifications}}[\s\S]*?{{\/includeNotifications}}/g, '');
+  }
+  
+  // Handle includeAuth sections
+  if (config.includeAuth) {
+    content = content.replace(/{{#includeAuth}}([\s\S]*?){{\/includeAuth}}/g, '$1');
+  } else {
+    content = content.replace(/{{#includeAuth}}[\s\S]*?{{\/includeAuth}}/g, '');
+  }
+  
+  // Handle email provider sections
+  if (config.emailProvider === 'resend') {
+    content = content.replace(/{{#resendEmail}}([\s\S]*?){{\/resendEmail}}/g, '$1');
+    content = content.replace(/{{#sendgridEmail}}[\s\S]*?{{\/sendgridEmail}}/g, '');
+  } else if (config.emailProvider === 'sendgrid') {
+    content = content.replace(/{{#sendgridEmail}}([\s\S]*?){{\/sendgridEmail}}/g, '$1');
+    content = content.replace(/{{#resendEmail}}[\s\S]*?{{\/resendEmail}}/g, '');
+  } else {
+    content = content.replace(/{{#resendEmail}}[\s\S]*?{{\/resendEmail}}/g, '');
+    content = content.replace(/{{#sendgridEmail}}[\s\S]*?{{\/sendgridEmail}}/g, '');
+  }
+  
+  return content;
+}
+
+/**
+ * Generate .env file with user-provided configuration
  */
 async function generateEnvFile(config: ProjectConfig, spinner: Ora): Promise<void> {
+  if (!config.supabaseUrl && !config.stripeSecretKey && !config.resendApiKey) {
+    // No configuration provided, skip generating .env
+    return;
+  }
+  
   spinner.text = 'Generating environment configuration...';
   
   const envPath = path.join(config.projectPath, '.env');
-  const envExamplePath = path.join(config.projectPath, '.env.example');
   
   let envContent = `# SGE Application Environment Variables
 # Generated by create-sge-app
@@ -324,9 +439,9 @@ VITE_APP_NAME="${config.projectName}"
 `;
 
   // Supabase configuration
-  if (config.includeAuth) {
+  if (config.includeAuth && config.supabaseUrl) {
     envContent += `# Supabase Configuration
-VITE_SUPABASE_URL="${config.supabaseUrl || 'https://your-project.supabase.co'}"
+VITE_SUPABASE_URL="${config.supabaseUrl}"
 VITE_SUPABASE_ANON_KEY="${config.supabaseAnonKey || 'your-anon-key'}"
 SUPABASE_SERVICE_ROLE_KEY="${config.supabaseServiceKey || 'your-service-role-key'}"
 
@@ -334,9 +449,9 @@ SUPABASE_SERVICE_ROLE_KEY="${config.supabaseServiceKey || 'your-service-role-key
   }
 
   // Stripe configuration
-  if (config.includeSubscriptions) {
+  if (config.includeSubscriptions && config.stripeSecretKey) {
     envContent += `# Stripe Configuration
-STRIPE_SECRET_KEY="${config.stripeSecretKey || 'sk_test_xxx'}"
+STRIPE_SECRET_KEY="${config.stripeSecretKey}"
 VITE_STRIPE_PUBLISHABLE_KEY="${config.stripePublishableKey || 'pk_test_xxx'}"
 STRIPE_WEBHOOK_SECRET="${config.stripeWebhookSecret || 'whsec_xxx'}"
 
@@ -344,31 +459,22 @@ STRIPE_WEBHOOK_SECRET="${config.stripeWebhookSecret || 'whsec_xxx'}"
   }
 
   // Email provider configuration
-  if (config.includeNotifications && config.emailProvider !== 'none') {
-    if (config.emailProvider === 'resend') {
-      envContent += `# Resend Email Configuration
-RESEND_API_KEY="${config.resendApiKey || 're_xxx'}"
+  if (config.includeNotifications && config.resendApiKey) {
+    envContent += `# Resend Email Configuration
+RESEND_API_KEY="${config.resendApiKey}"
 RESEND_FROM_EMAIL="noreply@yourdomain.com"
 
 `;
-    } else if (config.emailProvider === 'sendgrid') {
-      envContent += `# SendGrid Email Configuration
-SENDGRID_API_KEY="SG.xxx"
-SENDGRID_FROM_EMAIL="noreply@yourdomain.com"
-
-`;
-    }
   }
 
-  // Write .env file
+  // Development settings
+  envContent += `# Development
+NODE_ENV=development
+PORT=5173
+`;
+
+  // Write .env file only if we have some configuration
   await fs.writeFile(envPath, envContent);
-  
-  // Also write .env.example with placeholder values
-  const exampleContent = envContent.replace(
-    /="[^"]*"/g,
-    '="YOUR_VALUE_HERE"'
-  );
-  await fs.writeFile(envExamplePath, exampleContent);
   
   spinner.succeed('Environment configuration generated');
 }
@@ -993,10 +1099,12 @@ console.log('4. Run validation after each phase');
 }
 
 /**
- * Copy GitHub Copilot instructions for AI-assisted development
+ * Setup Copilot instructions for migration projects (new apps handled by templates)
  */
-async function setupCopilotInstructions(config: ProjectConfig, spinner: Ora): Promise<void> {
-  spinner.text = 'Setting up AI assistant configuration...';
+async function setupMigrationCopilotInstructions(config: ProjectConfig, spinner: Ora): Promise<void> {
+  if (config.projectType !== 'migration') return;
+  
+  spinner.text = 'Setting up migration AI assistant configuration...';
   
   try {
     const targetDir = path.join(config.projectPath, '.github/instructions');
@@ -1005,9 +1113,8 @@ async function setupCopilotInstructions(config: ProjectConfig, spinner: Ora): Pr
     // Create .github/instructions directory
     await fs.ensureDir(targetDir);
     
-    if (config.projectType === 'migration') {
-      // Create migration-specific Copilot instructions
-      const migrationInstructions = `# Migration Project - AI Assistant Instructions
+    // Create migration-specific Copilot instructions
+    const migrationInstructions = `# Migration Project - AI Assistant Instructions
 
 ## Project Context
 
@@ -1046,124 +1153,6 @@ You are assisting with a **legacy system migration project**. Your role is to he
 - **Testing Implementation**: Help create comprehensive test suites
 - **Documentation**: Generate technical documentation for new architecture
 
-## Migration Workflow Support
-
-### Phase 1: Discovery & Analysis
-**Files to Reference:** 
-- \`docs/migration/ai-discovery-guide.md\` - Interactive discovery framework
-- \`docs/migration/analysis-worksheet.md\` - Systematic analysis checklist
-
-**Key Activities:**
-- Analyze codebase structure and dependencies
-- Identify business-critical components
-- Assess technical debt and modernization opportunities
-- Document existing architecture and data flows
-
-### Phase 2: Planning & Strategy
-**Files to Reference:**
-- \`docs/migration/migration-plan.md\` - 4-phase migration strategy template
-
-**Key Activities:** 
-- Develop incremental migration roadmap
-- Plan target architecture design
-- Identify integration requirements
-- Create risk mitigation strategies
-
-### Phase 3: Architecture Design
-**Key Activities:**
-- Design modern system architecture
-- Plan database modernization approach
-- Design API and integration layers
-- Plan deployment and infrastructure architecture
-
-### Phase 4: Implementation & Validation
-**Key Activities:**
-- Guide incremental implementation
-- Support testing and validation
-- Help with deployment automation
-- Support monitoring and observability
-
-## Best Practices for Migration Projects
-
-### Code Analysis
-- Always analyze existing business logic before suggesting changes
-- Preserve critical business rules during modernization
-- Identify and document all external dependencies
-- Map data flows and transformation requirements
-
-### Migration Strategy
-- Prefer incremental migration over big-bang approaches
-- Maintain system availability during migration
-- Implement comprehensive testing at each phase
-- Plan rollback strategies for each migration phase
-
-### Modern Architecture Principles
-- Design for scalability and maintainability
-- Implement proper error handling and observability
-- Use modern security practices and patterns
-- Design for cloud-native deployment when applicable
-
-### Risk Management
-- Always validate business logic preservation
-- Implement comprehensive monitoring during transition
-- Plan for data integrity validation
-- Document all decisions and architectural changes
-
-## Technology Recommendations
-
-### Target Stack Options (Based on Migration Target)
-${config.migrationTarget === 'web' ? `
-**Web Application:**
-- Frontend: React 18 + TypeScript + Vite
-- Backend: Node.js/Express or Supabase Edge Functions
-- Database: PostgreSQL with modern ORM (Prisma/Supabase)
-- Hosting: Vercel, Netlify, or AWS` : 
-config.migrationTarget === 'mobile' ? `
-**Mobile Application:**
-- Framework: React Native + Expo or Flutter
-- Backend: Supabase or Firebase
-- State Management: Redux Toolkit or Zustand  
-- Navigation: React Navigation or Flutter Navigator` :
-config.migrationTarget === 'microservices' ? `
-**Microservices Architecture:**
-- Services: Node.js, Python FastAPI, or .NET Core
-- API Gateway: Kong, AWS API Gateway, or Azure API Management
-- Database: PostgreSQL, MongoDB, or service-specific databases
-- Messaging: RabbitMQ, Apache Kafka, or cloud-native solutions
-- Container Orchestration: Docker + Kubernetes` : `
-**Full-Stack Application:**
-- Frontend: React 18 + TypeScript + Vite
-- Mobile: React Native + Capacitor for native compilation
-- Backend: Supabase (PostgreSQL + Edge Functions + Auth)
-- Real-time: Supabase Realtime or Socket.io
-- Deployment: Vercel (web) + App Store/Play Store (mobile)`}
-
-### Integration Patterns
-- REST APIs with OpenAPI documentation
-- GraphQL for complex data requirements
-- Event-driven architecture for decoupled systems
-- Message queues for asynchronous processing
-
-## Communication Guidelines
-
-### When Analyzing Legacy Code
-1. **Ask clarifying questions** about business requirements and constraints
-2. **Identify critical vs non-critical** components early
-3. **Suggest incremental approaches** over complete rewrites
-4. **Document assumptions** and validate them with stakeholders
-
-### When Recommending Changes
-1. **Explain the benefits** of modern patterns vs legacy approaches
-2. **Provide specific examples** of how to implement recommended changes
-3. **Consider migration complexity** in all recommendations
-4. **Always include testing strategies** for recommended changes
-
-### When Supporting Implementation
-1. **Generate production-ready code** following modern best practices
-2. **Include comprehensive error handling** and logging
-3. **Provide clear documentation** for all new components
-4. **Suggest monitoring and observability** approaches
-
 Remember: The goal is successful modernization with minimal business disruption. Always prioritize **business continuity** and **data integrity** while introducing modern development practices and architecture patterns.
 
 ---
@@ -1173,544 +1162,15 @@ Remember: The goal is successful modernization with minimal business disruption.
 **AI-Assisted Migration Ready** 🔄
 `;
 
-      await fs.writeFile(targetFile, migrationInstructions);
-    } else {
-      // Copy standard SGE Copilot instructions for new projects
-      const templateDir = path.resolve(__dirname, '../..');
-      const sourceFile = path.join(templateDir, '.github/instructions/copilot-instructions.md');
-      
-      if (await fs.pathExists(sourceFile)) {
-        await fs.copy(sourceFile, targetFile);
-      }
-    }
+    await fs.writeFile(targetFile, migrationInstructions);
     
-    spinner.succeed('AI assistant configuration ready');
+    spinner.succeed('Migration AI assistant configuration ready');
   } catch (error: any) {
-    spinner.warn(`Could not setup AI instructions: ${error.message}`);
+    spinner.warn(`Could not setup migration AI instructions: ${error.message}`);
   }
 }
 
-/**
- * Create docs folder with placeholder files for AI-assisted planning
- */
-async function createDocsFolder(config: ProjectConfig, spinner: Ora): Promise<void> {
-  spinner.text = 'Creating documentation structure...';
-  
-  try {
-    const docsDir = path.join(config.projectPath, 'docs/planning');
-    await fs.ensureDir(docsDir);
-    
-    // Market Research placeholder
-    const marketResearchContent = `# Market Research
 
-## Target Market Analysis
-
-### Market Size & Opportunity
-- [ ] Total Addressable Market (TAM)
-- [ ] Serviceable Addressable Market (SAM)
-- [ ] Serviceable Obtainable Market (SOM)
-
-### Target Audience
-- [ ] Primary user personas
-- [ ] User demographics
-- [ ] User pain points
-- [ ] Current solutions they use
-
-### Competitive Analysis
-- [ ] Direct competitors
-- [ ] Indirect competitors
-- [ ] Competitive advantages
-- [ ] Market gaps
-
-### Market Trends
-- [ ] Industry trends
-- [ ] Technology trends
-- [ ] Regulatory considerations
-
-## Research Notes
-
-*Use this section to gather insights from your AI-assisted research sessions.*
-
----
-**Status:** 🔨 In Progress  
-**Last Updated:** ${new Date().toISOString().split('T')[0]}
-`;
-
-    // Product Specification placeholder
-    const productSpecContent = `# Product Specification
-
-## Product Overview
-
-### Vision Statement
-*What is the core vision for this product?*
-
-### Problem Statement
-*What problem are we solving? For whom?*
-
-### Solution Overview
-*How does our product solve this problem?*
-
-## Features & Requirements
-
-### Core Features (MVP)
-- [ ] Feature 1: [Description]
-- [ ] Feature 2: [Description]
-- [ ] Feature 3: [Description]
-
-### User Stories
-1. **As a [user type]**, I want to [action] so that [benefit]
-2. **As a [user type]**, I want to [action] so that [benefit]
-3. **As a [user type]**, I want to [action] so that [benefit]
-
-### Feature Details
-*Expand on each feature with detailed specifications*
-
-#### Feature 1: [Name]
-- **Description:**
-- **User Flow:**
-- **Technical Requirements:**
-- **Success Metrics:**
-
-## Technical Architecture
-
-### Tech Stack (Inherited from SGE Template)
-- ✅ Frontend: React 18 + TypeScript + Vite
-- ✅ Backend: Supabase (PostgreSQL + Auth + Edge Functions)
-- ✅ Mobile: Capacitor 7 (iOS/Android)
-- ✅ Payments: Stripe (if enabled)
-- ✅ Email: Resend (if enabled)
-
-### Custom Components Needed
-- [ ] Custom component 1
-- [ ] Custom component 2
-- [ ] Custom component 3
-
-### Data Models
-*Define your domain-specific data models here*
-
-### Integration Requirements
-- [ ] Integration 1
-- [ ] Integration 2
-
-## Design Requirements
-
-### UI/UX Considerations
-- [ ] Mobile-first design
-- [ ] Accessibility (WCAG 2.1 AA)
-- [ ] Responsive breakpoints
-- [ ] Brand guidelines
-
-### Key Screens
-1. Screen 1: [Purpose]
-2. Screen 2: [Purpose]
-3. Screen 3: [Purpose]
-
-## Success Metrics
-
-### Key Performance Indicators (KPIs)
-- [ ] User acquisition
-- [ ] User retention
-- [ ] Engagement metrics
-- [ ] Revenue metrics (if applicable)
-
----
-**Status:** 🔨 In Progress  
-**Last Updated:** ${new Date().toISOString().split('T')[0]}
-`;
-
-    // Critical Requirements placeholder
-    const criticalRequirementsContent = `# Critical Requirements
-
-## Must-Have Requirements (MVP)
-
-### Functional Requirements
-1. **[Requirement 1]**
-   - Description:
-   - Priority: 🔴 Critical
-   - Impact: High
-
-2. **[Requirement 2]**
-   - Description:
-   - Priority: 🔴 Critical
-   - Impact: High
-
-### Non-Functional Requirements
-
-#### Performance
-- [ ] Page load time < 2 seconds
-- [ ] API response time < 500ms
-- [ ] Support 1000+ concurrent users
-
-#### Security
-- [ ] Authentication required for sensitive operations
-- [ ] Data encryption at rest and in transit
-- [ ] GDPR compliance (if applicable)
-- [ ] Regular security audits
-
-#### Scalability
-- [ ] Horizontal scaling capability
-- [ ] Database optimization
-- [ ] CDN for static assets
-
-#### Reliability
-- [ ] 99.9% uptime SLA
-- [ ] Automated backups
-- [ ] Error monitoring and alerting
-
-## Compliance & Legal
-
-### Data Privacy
-- [ ] Privacy policy
-- [ ] Terms of service
-- [ ] Cookie consent
-- [ ] Data retention policies
-
-### Industry-Specific Requirements
-*List any industry-specific compliance requirements*
-
-## Constraints & Limitations
-
-### Technical Constraints
-- [ ] Browser compatibility requirements
-- [ ] Mobile OS version support
-- [ ] Third-party API limitations
-
-### Business Constraints
-- [ ] Budget limitations
-- [ ] Timeline constraints
-- [ ] Resource availability
-
-## Risk Assessment
-
-### High Priority Risks
-1. **Risk 1:** [Description]
-   - Mitigation:
-   
-2. **Risk 2:** [Description]
-   - Mitigation:
-
----
-**Status:** 🔨 In Progress  
-**Last Updated:** ${new Date().toISOString().split('T')[0]}
-`;
-
-    // Technical Decisions placeholder
-    const technicalDecisionsContent = `# Technical Decisions & Architecture
-
-## Architecture Decisions
-
-### Decision 1: [Title]
-- **Status:** Proposed | Accepted | Rejected
-- **Context:** What is the issue we're addressing?
-- **Decision:** What is the change we're proposing?
-- **Consequences:** What becomes easier/harder after this change?
-
-### Decision 2: [Title]
-- **Status:** Proposed | Accepted | Rejected
-- **Context:**
-- **Decision:**
-- **Consequences:**
-
-## Database Schema Customization
-
-### Custom Tables
-*Document any custom tables beyond the SGE template*
-
-\`\`\`sql
--- Add your custom table definitions here
-CREATE TABLE custom_table (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  -- your columns
-);
-\`\`\`
-
-### Schema Modifications
-*Document changes to template tables*
-
-## API Design
-
-### Custom Endpoints
-1. \`POST /api/endpoint1\` - Description
-2. \`GET /api/endpoint2\` - Description
-
-### Edge Functions
-*List custom Edge Functions beyond template*
-- \`custom-function-1\` - Purpose
-- \`custom-function-2\` - Purpose
-
-## Third-Party Integrations
-
-### Required Integrations
-- [ ] Integration 1: [Purpose, API docs link]
-- [ ] Integration 2: [Purpose, API docs link]
-
-## Performance Optimizations
-
-### Planned Optimizations
-- [ ] Caching strategy
-- [ ] Image optimization
-- [ ] Code splitting
-- [ ] Database indexing
-
----
-**Status:** 🔨 In Progress  
-**Last Updated:** ${new Date().toISOString().split('T')[0]}
-`;
-
-    // Development Roadmap placeholder
-    const roadmapContent = `# Development Roadmap
-
-## Phase 1: Planning & Design (Week 1-2)
-- [x] Market research (see market-research.md)
-- [x] Product specification (see product-spec.md)
-- [x] Critical requirements (see critical-requirements.md)
-- [ ] UI/UX design mockups
-- [ ] Technical architecture finalization
-
-## Phase 2: MVP Development (Week 3-6)
-- [ ] Database schema customization
-- [ ] Core feature 1 development
-- [ ] Core feature 2 development
-- [ ] Core feature 3 development
-- [ ] Basic UI implementation
-
-## Phase 3: Integration & Testing (Week 7-8)
-- [ ] Third-party integrations
-- [ ] End-to-end testing
-- [ ] Performance testing
-- [ ] Security audit
-- [ ] Bug fixes
-
-## Phase 4: Deployment & Launch (Week 9-10)
-- [ ] Production environment setup
-- [ ] Deployment automation
-- [ ] Monitoring and logging
-- [ ] Beta testing
-- [ ] Official launch
-
-## Phase 5: Post-Launch (Ongoing)
-- [ ] User feedback collection
-- [ ] Performance monitoring
-- [ ] Feature iterations
-- [ ] Bug fixes and improvements
-
-## Milestone Tracker
-
-### Completed ✅
-- Project scaffolded with SGE template
-- AI assistant configured
-- Planning documents created
-
-### In Progress 🔨
-- Market research
-- Product specification
-- Requirements gathering
-
-### Upcoming 📋
-- Design phase
-- Development phase
-
----
-**Last Updated:** ${new Date().toISOString().split('T')[0]}
-`;
-
-    // AI Chat Log placeholder
-    const aiChatLogContent = `# AI-Assisted Development Log
-
-## Purpose
-This document tracks key insights, decisions, and guidance from AI-assisted development sessions.
-
-## Chat Sessions
-
-### Session 1: Initial Planning (${new Date().toISOString().split('T')[0]})
-**Topics Covered:**
-- Project overview and goals
-- Market research approach
-- Initial feature ideation
-
-**Key Insights:**
-- *Record important insights from your AI chat sessions here*
-
-**Action Items:**
-- [ ] Complete market research
-- [ ] Define MVP features
-- [ ] Create user personas
-
-**Decisions Made:**
-- *Document any decisions made during the chat*
-
----
-
-### Session 2: [Topic] (Date)
-**Topics Covered:**
-- 
-
-**Key Insights:**
-- 
-
-**Action Items:**
-- [ ] 
-
-**Decisions Made:**
-- 
-
----
-
-## Best Practices
-
-### Working with AI Assistants
-1. **Be specific** - Provide clear context and requirements
-2. **Iterate** - Refine specifications through conversation
-3. **Document** - Keep track of important decisions
-4. **Validate** - Verify AI suggestions against best practices
-5. **Customize** - Adapt template code for your specific needs
-
-### Prompt Templates
-
-#### For Market Research
-\`\`\`
-I'm building [product description]. Help me research:
-1. Market size and opportunity
-2. Target audience and personas
-3. Competitive landscape
-4. Market trends and gaps
-\`\`\`
-
-#### For Feature Planning
-\`\`\`
-For my [product type], I need to plan features for [user type].
-Current pain points: [list]
-Desired outcomes: [list]
-Help me prioritize and spec out MVP features.
-\`\`\`
-
-#### For Technical Architecture
-\`\`\`
-I'm using the SGE template (React + Supabase + Capacitor).
-I need to implement [feature].
-Help me design the:
-1. Data models
-2. API endpoints
-3. Component structure
-4. State management approach
-\`\`\`
-
----
-**Last Updated:** ${new Date().toISOString().split('T')[0]}
-`;
-
-    // README for docs folder
-    const docsReadmeContent = `# Project Planning Documentation
-
-## 🎯 Getting Started with AI-Assisted Development
-
-This project uses the SGE Starter Template and is designed for **AI-assisted development**. Your first step should be working with an AI assistant (like GitHub Copilot Chat, ChatGPT, or Claude) to:
-
-1. **Research your market** → Edit \`market-research.md\`
-2. **Define your product** → Edit \`product-spec.md\`
-3. **Identify requirements** → Edit \`critical-requirements.md\`
-4. **Make technical decisions** → Edit \`technical-decisions.md\`
-5. **Plan your roadmap** → Edit \`development-roadmap.md\`
-6. **Document AI sessions** → Update \`ai-chat-log.md\`
-
-## 📁 Documentation Structure
-
-### Planning Documents
-- **\`market-research.md\`** - Market analysis, competitors, opportunities
-- **\`product-spec.md\`** - Product vision, features, user stories
-- **\`critical-requirements.md\`** - Must-have requirements, compliance, risks
-- **\`technical-decisions.md\`** - Architecture decisions, API design, integrations
-- **\`development-roadmap.md\`** - Phase-by-phase development plan
-- **\`ai-chat-log.md\`** - Track insights from AI-assisted sessions
-
-### AI Assistant Configuration
-- **\`.github/instructions/copilot-instructions.md\`** - Context for AI assistants
-
-## 🤖 Working with AI Assistants
-
-### Best Practices
-1. **Start with research** - Use AI to understand your market and users
-2. **Iterate on specs** - Refine your product specification through conversation
-3. **Validate decisions** - Ask AI to review your technical choices
-4. **Generate code** - Use AI to scaffold components and features
-5. **Document everything** - Keep \`ai-chat-log.md\` updated with key insights
-
-### Example AI Prompts
-
-**For Market Research:**
-\`\`\`
-I'm building a [type] application for [audience]. 
-Help me understand the market opportunity, competition, and user needs.
-See docs/planning/market-research.md for structure.
-\`\`\`
-
-**For Feature Planning:**
-\`\`\`
-Review my product spec at docs/planning/product-spec.md.
-Help me prioritize features for MVP and create detailed user stories.
-\`\`\`
-
-**For Implementation:**
-\`\`\`
-I need to implement [feature] using the SGE template (React + Supabase).
-The template includes: [list relevant template features].
-Help me design the component structure and data flow.
-\`\`\`
-
-## 🚀 Development Workflow
-
-### Phase 1: Planning (Week 1-2)
-1. Work with AI to complete all planning documents
-2. Review and validate specifications
-3. Get feedback from stakeholders
-4. Finalize MVP scope
-
-### Phase 2: Development (Week 3+)
-1. Use AI to generate component scaffolding
-2. Customize template features for your needs
-3. Implement custom business logic
-4. Test and iterate
-
-### Phase 3: Deployment
-1. Follow SGE template deployment guides
-2. Configure production environment
-3. Deploy and monitor
-
-## 📚 Related Documentation
-
-### Template Documentation
-- **Main README** - \`../README.md\`
-- **Quick Start** - \`../docs/QUICKSTART.md\`
-- **Auth System** - \`../packages/functions/auth/README.md\`
-- **Notifications** - \`../packages/functions/notifications/README.md\`
-- **Subscriptions** - \`../packages/functions/subscriptions/README.md\`
-
-### Development Guides
-- **Database Schema** - \`../infra/schema/README.md\`
-- **CLI Generator** - \`../generator/README.md\`
-- **Build Scripts** - \`../scripts/README.md\`
-
----
-
-**Remember:** The SGE template provides the infrastructure. Your AI-assisted planning defines the unique value proposition. Start with thorough planning before diving into code!
-
-**Created:** ${new Date().toISOString().split('T')[0]}
-`;
-
-    // Write all files
-    await fs.writeFile(path.join(docsDir, 'market-research.md'), marketResearchContent);
-    await fs.writeFile(path.join(docsDir, 'product-spec.md'), productSpecContent);
-    await fs.writeFile(path.join(docsDir, 'critical-requirements.md'), criticalRequirementsContent);
-    await fs.writeFile(path.join(docsDir, 'technical-decisions.md'), technicalDecisionsContent);
-    await fs.writeFile(path.join(docsDir, 'development-roadmap.md'), roadmapContent);
-    await fs.writeFile(path.join(docsDir, 'ai-chat-log.md'), aiChatLogContent);
-    await fs.writeFile(path.join(docsDir, 'README.md'), docsReadmeContent);
-    
-    spinner.succeed('Documentation structure created with planning templates');
-  } catch (error: any) {
-    spinner.warn(`Could not create docs folder: ${error.message}`);
-  }
-}
 
 /**
  * Create migration-specific README
@@ -2384,18 +1844,16 @@ async function generateProject(config: ProjectConfig): Promise<void> {
     if (config.projectType === 'migration') {
       // Migration project workflow
       await createMigrationProject(config, spinner);
-      await setupCopilotInstructions(config, spinner);
+      await setupMigrationCopilotInstructions(config, spinner);
       await createMigrationReadme(config, spinner);
       await installDependencies(config, spinner);
     } else {
       // New SGE app workflow
-      // 1. Clone template
-      await cloneTemplate(config, spinner);
+      // 1. Create project from template
+      await createNewAppProject(config, spinner);
       
-      // 2. Setup AI-assisted development files
-      await setupCopilotInstructions(config, spinner);
-      await createDocsFolder(config, spinner);
-      await createProjectReadme(config, spinner);
+      // 2. Process template files
+      await processTemplateFiles(config, spinner);
       
       // 3. Generate environment configuration
       await generateEnvFile(config, spinner);
@@ -2452,9 +1910,13 @@ program
       
       // If project name provided with options, use non-interactive mode
       if (projectName && options) {
+        // Handle path separation: if projectName contains path separators, extract directory name
+        const resolvedPath = path.resolve(process.cwd(), projectName);
+        const extractedProjectName = path.basename(resolvedPath);
+        
         config = {
-          projectName,
-          projectPath: path.resolve(process.cwd(), projectName),
+          projectName: extractedProjectName,
+          projectPath: resolvedPath,
           packageManager: options.pm || detectPackageManager(),
           projectType: options.migration ? 'migration' : 'new',
           includeMobile: options.mobile !== false,

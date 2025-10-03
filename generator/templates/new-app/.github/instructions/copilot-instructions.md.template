@@ -1,0 +1,192 @@
+# {{PROJECT_NAME}} - AI Assistant Instructions
+
+## Project Context
+
+**Project:** {{PROJECT_NAME}}  
+**Template:** SGE Starter Template  
+**Tech Stack:** React 18, TypeScript, Supabase, Tailwind CSS{{#includeMobile}}, Capacitor{{/includeMobile}}{{#includeSubscriptions}}, Stripe{{/includeSubscriptions}}
+
+## Mission
+
+You are assisting with the development of **{{PROJECT_NAME}}**, a modern web{{#includeMobile}} and mobile{{/includeMobile}} application built using the SGE (Scalable Growth Engine) Template. This template provides a production-ready foundation with authentication, database, and deployment infrastructure already configured.
+
+## Core Architecture
+
+### Technology Stack
+- **Frontend**: React 18 + TypeScript + Vite
+- **Backend**: Supabase (PostgreSQL + Edge Functions + Auth + Realtime)
+- **Styling**: Tailwind CSS + Shadcn/ui components{{#includeMobile}}
+- **Mobile**: Capacitor 7 (iOS + Android native compilation){{/includeMobile}}{{#includeSubscriptions}}
+- **Payments**: Stripe integration with webhook handling{{/includeSubscriptions}}{{#includeNotifications}}
+- **Notifications**: Multi-channel notification system{{/includeNotifications}}
+- **Deployment**: Vercel (web){{#includeMobile}} + App Store/Play Store (mobile){{/includeMobile}}
+
+### Project Structure
+```
+{{PROJECT_NAME}}/
+├── packages/
+│   ├── shared/          # Utilities, hooks, types
+│   ├── ui/              # Reusable UI components  
+│   ├── web/             # Main web application{{#includeMobile}}
+│   └── mobile/          # Mobile-specific code{{/includeMobile}}
+├── packages/functions/  # Supabase Edge Functions{{#includeAuth}}
+│   ├── auth/            # User management{{/includeAuth}}{{#includeNotifications}}
+│   ├── notifications/   # Email/push notifications{{/includeNotifications}}{{#includeSubscriptions}}
+│   └── subscriptions/   # Stripe webhooks{{/includeSubscriptions}}
+├── infra/schema/        # Database schema
+└── scripts/             # Build utilities
+```
+
+## Development Guidelines
+
+### Code Quality Standards
+- **TypeScript**: Strict mode enabled, no `any` types
+- **Components**: Functional components with proper TypeScript interfaces
+- **Hooks**: Custom hooks for business logic
+- **Error Handling**: Comprehensive error boundaries and user feedback
+- **Testing**: Unit tests for critical business logic{{#includeMobile}}
+- **Mobile-First**: Responsive design that works on web and mobile{{/includeMobile}}
+
+### Database Patterns
+- **Supabase Client**: Use typed client from generated types
+- **Row Level Security**: All queries respect user permissions
+- **Realtime**: Use Supabase realtime for live updates
+- **Edge Functions**: Server-side logic in TypeScript
+
+### UI/UX Standards
+- **Accessibility**: WCAG 2.1 AA compliance
+- **Responsive Design**: Mobile-first responsive layouts
+- **Component Library**: Use Shadcn/ui components consistently
+- **Loading States**: Always show loading feedback
+- **Error States**: Graceful error handling with user-friendly messages
+
+{{#includeAuth}}
+### Authentication
+- **Supabase Auth**: Use built-in authentication system
+- **Protected Routes**: Implement route-level protection
+- **User Context**: Manage user state with React Context
+- **Session Management**: Handle auth state changes properly
+{{/includeAuth}}
+
+{{#includeSubscriptions}}
+### Subscription Management
+- **Stripe Integration**: Use existing webhook handlers
+- **Subscription States**: Handle trial, active, canceled, past_due
+- **Feature Gates**: Implement subscription-based feature access
+- **Billing UI**: Use pre-built subscription management components
+{{/includeSubscriptions}}
+
+{{#includeNotifications}}
+### Notifications
+- **Multi-Channel**: Email, push, and in-app notifications
+- **Templates**: Use notification template system
+- **User Preferences**: Respect user notification settings
+- **Delivery Status**: Track and handle delivery failures
+{{/includeNotifications}}
+
+{{#includeMobile}}
+### Mobile Development
+- **Capacitor**: Use Capacitor APIs for native functionality
+- **Platform Detection**: Handle web vs mobile differences
+- **Touch Interactions**: Optimize for touch interfaces
+- **Performance**: Minimize bundle size for mobile
+- **Native Features**: Camera, geolocation, push notifications
+{{/includeMobile}}
+
+## Best Practices
+
+### When Adding New Features
+1. **Start with types** - Define TypeScript interfaces first
+2. **Create reusable components** - Add to packages/ui if reusable
+3. **Implement proper error handling** - Use error boundaries
+4. **Add loading states** - Always provide user feedback
+5. **Test across platforms** - Verify web{{#includeMobile}} and mobile{{/includeMobile}} compatibility
+6. **Document complex logic** - Add JSDoc comments
+
+### When Integrating External Services
+1. **Use Edge Functions** - Server-side integration code
+2. **Handle failures gracefully** - Implement retry logic
+3. **Secure API keys** - Use environment variables
+4. **Type the responses** - Create TypeScript interfaces
+5. **Test error scenarios** - Handle network failures
+
+### Performance Optimization
+- **Code Splitting**: Use React.lazy for route-based splitting
+- **Bundle Analysis**: Monitor and optimize bundle size
+- **Image Optimization**: Use appropriate formats and sizes
+- **Database Queries**: Optimize Supabase queries and indexes
+- **Caching**: Implement appropriate caching strategies
+
+## Common Patterns
+
+### Creating New Components
+```typescript
+interface ComponentProps {
+  // Define props with proper types
+}
+
+export function Component({ ...props }: ComponentProps) {
+  // Implementation with error handling and loading states
+}
+```
+
+### Database Operations
+```typescript
+const { data, error } = await supabase
+  .from('table_name')
+  .select('*')
+  .eq('user_id', user.id);
+
+if (error) {
+  // Handle error appropriately
+}
+```
+
+{{#includeMobile}}
+### Mobile-Specific Code
+```typescript
+import { useIsMobile } from '@/packages/shared/hooks/use-mobile';
+
+function Component() {
+  const isMobile = useIsMobile();
+  
+  return (
+    <div className={cn(
+      "base-styles",
+      isMobile ? "mobile-styles" : "desktop-styles"
+    )}>
+      {/* Component content */}
+    </div>
+  );
+}
+```
+{{/includeMobile}}
+
+## Project-Specific Context
+
+### Business Domain
+*Add specific context about your application domain, business rules, and user workflows here*
+
+### Custom Requirements
+*Document any project-specific requirements, constraints, or architectural decisions*
+
+### Integration Points
+*List any external services, APIs, or systems this application integrates with*
+
+## Getting Help
+
+When you need assistance:
+
+1. **Reference existing patterns** - Look at similar implementations in the codebase
+2. **Check documentation** - Review package READMEs and inline comments
+3. **Ask specific questions** - Provide context about what you're trying to achieve
+4. **Share error messages** - Include full error messages and stack traces
+5. **Describe expected behavior** - Explain what should happen vs what is happening
+
+Remember: This template provides a solid foundation. Focus on building your unique business logic while leveraging the proven patterns already in place.
+
+---
+
+**Template Version**: SGE Starter v0.1.0  
+**Generated**: {{GENERATION_DATE}}  
+**Tech Stack**: Production-ready foundation for rapid development 🚀

@@ -1,0 +1,266 @@
+# Development Planning Specification
+
+## AI-Assisted Development Workflow
+
+This document provides a comprehensive framework for AI-assisted development of {{PROJECT_NAME}} using the SGE template. The planning documents in this folder work together to create a systematic approach to building high-quality applications.
+
+## Planning Document Overview
+
+### Core Planning Documents
+
+#### 1. Market Research & Analysis (`market-research.md`)
+**Purpose:** Understand the market landscape and validate your business idea
+**When to Use:** Before starting development to ensure market fit
+**AI Collaboration:** Use AI to analyze competitor features, identify market gaps, and validate assumptions
+
+#### 2. Product Requirements Document (`product-requirements.md`)
+**Purpose:** Define what you're building and why
+**When to Use:** After market research, before technical planning
+**AI Collaboration:** Use AI to refine user stories, identify edge cases, and validate feature priorities
+
+#### 3. Technical Specification (`technical-specification.md`)
+**Purpose:** Define how you'll build the product technically
+**When to Use:** After PRD completion, before implementation
+**AI Collaboration:** Use AI to review architecture decisions, identify potential issues, and optimize technical approaches
+
+#### 4. Critical Requirements (`critical-requirements.md`)
+**Purpose:** Define non-negotiable requirements and success criteria
+**When to Use:** Throughout development to maintain focus on critical features
+**AI Collaboration:** Use AI to validate requirements, identify risks, and ensure nothing critical is missed
+
+## Recommended Development Workflow
+
+### Phase 1: Discovery & Planning (Week 1-2)
+1. **Market Research** - Complete market analysis using AI assistance
+2. **Product Requirements** - Define features and user stories with AI validation
+3. **Technical Planning** - Review SGE template capabilities and plan customizations
+4. **Critical Requirements** - Identify launch-blocking requirements
+
+### Phase 2: Foundation Setup (Week 3)
+1. **Project Generation** - Use SGE CLI to generate base project
+2. **Environment Setup** - Configure development, staging, production environments
+3. **Database Design** - Extend SGE schema for your specific needs
+4. **Architecture Review** - Validate technical decisions with AI assistance
+
+### Phase 3: Core Development (Week 4-8)
+1. **Authentication Flow** - Customize SGE auth for your needs
+2. **Core Features** - Implement priority features from PRD
+3. **Database Integration** - Implement custom data models and relationships
+4. **API Development** - Create custom Edge Functions as needed
+
+### Phase 4: Enhancement & Polish (Week 9-10)
+1. **UI/UX Polish** - Refine user interface and experience
+2. **Performance Optimization** - Optimize for production performance
+3. **Testing** - Comprehensive testing across all platforms
+4. **Security Review** - Security audit and penetration testing
+
+### Phase 5: Launch Preparation (Week 11-12)
+1. **Production Deployment** - Deploy to production environment
+2. **Monitoring Setup** - Implement error tracking and analytics
+3. **Documentation** - Complete user and API documentation
+4. **Launch Strategy** - Execute go-to-market plan
+
+## AI Collaboration Best Practices
+
+### Effective AI Prompting Strategies
+
+#### Context-Rich Prompts
+Always provide comprehensive context when asking for AI assistance:
+
+```
+I'm building {{PROJECT_NAME}} using the SGE template (React + Supabase + TypeScript).
+
+Context:
+- Target users: [describe your users]
+- Core functionality: [describe main features]
+- Technical constraints: [any limitations]
+- Current progress: [what's implemented]
+
+I need help with: [specific request]
+
+Please provide production-ready solutions with proper TypeScript types.
+```
+
+#### Iterative Refinement
+Use AI for multiple rounds of refinement:
+
+1. **Initial Implementation** - Get basic working solution
+2. **Code Review** - Ask AI to review and suggest improvements
+3. **Edge Cases** - Identify and handle edge cases
+4. **Optimization** - Optimize for performance and maintainability
+
+#### Validation and Testing
+Use AI to validate your work:
+
+```
+Review this [component/function/architecture] for:
+1. TypeScript best practices
+2. React performance considerations
+3. Security vulnerabilities
+4. Accessibility compliance
+5. Mobile responsiveness
+```
+
+### Documentation-Driven Development
+
+#### Living Documents
+Keep planning documents updated throughout development:
+- Update PRD as features evolve
+- Maintain technical specification with architecture changes
+- Track completed requirements in critical requirements document
+
+#### AI-Assisted Documentation
+Use AI to help maintain documentation:
+
+```
+Update the technical specification for {{PROJECT_NAME}} based on these recent changes:
+[describe what was implemented]
+
+Please update the relevant sections and maintain consistency with the overall architecture.
+```
+
+## SGE Template Integration
+
+### Leveraging Template Features
+
+#### Built-in Capabilities
+The SGE template provides:
+- **Authentication System** - Ready-to-use auth with Supabase
+- **Database Schema** - Core tables for user management
+- **UI Components** - Tailwind + shadcn/ui component library
+- **Mobile Support** - Capacitor integration for native apps
+- **Deployment** - Vercel deployment configuration
+
+#### Customization Points
+Key areas for customization:
+- **Database Schema** - Add custom tables and relationships
+- **UI Components** - Create app-specific components
+- **Edge Functions** - Add custom server-side logic
+- **Mobile Features** - Integrate native device capabilities
+
+### Development Environment
+
+#### Recommended Tools
+- **VS Code** - Primary development environment
+- **GitHub Copilot** - AI coding assistance
+- **Supabase CLI** - Database management and local development
+- **Vercel CLI** - Deployment and preview management
+
+#### AI Development Setup
+Configure your development environment for optimal AI assistance:
+
+1. **Use descriptive variable and function names** - Helps AI understand context
+2. **Add comprehensive comments** - Provides context for AI suggestions
+3. **Maintain consistent code style** - Makes AI suggestions more accurate
+4. **Keep files focused** - Smaller, focused files are easier for AI to work with
+
+## Quality Assurance Framework
+
+### AI-Assisted Code Review
+
+#### Automated Checks
+Use AI to perform systematic code reviews:
+
+```
+Please review this code for:
+- TypeScript best practices and type safety
+- React performance optimizations
+- Security vulnerabilities
+- Accessibility compliance
+- Code maintainability and readability
+- SGE template pattern compliance
+```
+
+#### Testing Strategy
+Leverage AI for comprehensive testing:
+
+1. **Unit Tests** - Generate test cases for business logic
+2. **Integration Tests** - Test API endpoints and database operations
+3. **E2E Tests** - Test critical user workflows
+4. **Accessibility Tests** - Ensure WCAG compliance
+
+### Performance Optimization
+
+#### AI-Assisted Performance Analysis
+Use AI to identify performance bottlenecks:
+
+```
+Analyze this [component/function/query] for performance issues:
+- Bundle size impact
+- Runtime performance
+- Database query efficiency
+- Mobile performance considerations
+
+Suggest specific optimizations for production use.
+```
+
+## Deployment & Launch Strategy
+
+### Pre-Launch Checklist
+Use AI to validate launch readiness:
+
+```
+Review {{PROJECT_NAME}} for production readiness:
+1. Security audit checklist
+2. Performance benchmarking
+3. Accessibility compliance
+4. Cross-platform compatibility
+5. Error handling and monitoring
+
+Provide a comprehensive launch readiness assessment.
+```
+
+### Post-Launch Optimization
+Continuous improvement with AI assistance:
+
+1. **Performance Monitoring** - Analyze metrics and optimize bottlenecks
+2. **User Feedback Integration** - Incorporate user feedback into development
+3. **Feature Enhancement** - Prioritize and implement new features
+4. **Bug Resolution** - Systematic approach to bug fixes and improvements
+
+## Success Metrics & KPIs
+
+### Development Metrics
+- **Code Quality** - Maintain high TypeScript strictness and test coverage
+- **Performance** - Meet Core Web Vitals and mobile performance standards
+- **Security** - Zero critical security vulnerabilities
+- **Accessibility** - WCAG 2.1 AA compliance
+
+### Business Metrics
+- **User Adoption** - Track user registration and activation rates
+- **Feature Usage** - Monitor which features drive value
+- **Performance** - Monitor application speed and reliability
+- **User Satisfaction** - Collect and analyze user feedback
+
+### AI-Assisted Metrics Analysis
+
+```
+Analyze the current metrics for {{PROJECT_NAME}}:
+[provide current metrics data]
+
+Please identify:
+1. Areas of success and what's driving them
+2. Concerning trends that need attention
+3. Opportunities for improvement
+4. Recommended next steps based on data
+
+Focus on actionable insights for product development.
+```
+
+---
+
+## Getting Started
+
+1. **Read all planning documents** in this folder to understand the full scope
+2. **Complete market research** to validate your idea
+3. **Create your PRD** with AI assistance for comprehensive planning
+4. **Review technical specification** to understand implementation approach
+5. **Define critical requirements** to maintain focus throughout development
+6. **Start development** using the systematic approach outlined above
+
+Remember: These documents are living resources. Update them throughout development to maintain alignment between planning and implementation.
+
+---
+**Framework Version:** 1.0  
+**Last Updated:** {{GENERATION_DATE}}  
+**Compatible With:** SGE Template v1.0+

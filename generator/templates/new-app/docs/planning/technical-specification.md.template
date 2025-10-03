@@ -1,0 +1,334 @@
+# Technical Specification
+
+## Architecture Overview
+
+### System Architecture
+*Describe the high-level architecture of {{PROJECT_NAME}}*
+
+```
+[User Interface] → [API Layer] → [Business Logic] → [Database]
+       ↓              ↓              ↓             ↓
+   React App    Edge Functions   Custom Logic   PostgreSQL
+```
+
+### Technology Stack
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS
+- **Backend:** Supabase (PostgreSQL, Edge Functions, Auth, Realtime){{#includeMobile}}
+- **Mobile:** Capacitor (iOS/Android native compilation){{/includeMobile}}{{#includeSubscriptions}}
+- **Payments:** Stripe API integration{{/includeSubscriptions}}{{#includeNotifications}}
+- **Email:** {{#resendEmail}}Resend API{{/resendEmail}}{{#sendgridEmail}}SendGrid API{{/sendgridEmail}}{{/includeNotifications}}
+- **Deployment:** Vercel (web){{#includeMobile}}, App Store/Play Store (mobile){{/includeMobile}}
+
+## Database Design
+
+### Core Entities (Beyond SGE Template)
+*Document your custom database tables and relationships*
+
+```sql
+-- Custom tables for {{PROJECT_NAME}}
+CREATE TABLE custom_entity (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'active',
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add RLS policies
+ALTER TABLE custom_entity ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own entities" ON custom_entity
+  FOR ALL USING (auth.uid() = user_id);
+```
+
+### Data Relationships
+*Document key relationships between entities*
+
+- `users` (from auth.users) → `custom_entity` (one-to-many)
+- Add your relationships here
+
+### Database Indexing Strategy
+```sql
+-- Performance indexes for custom tables
+CREATE INDEX idx_custom_entity_user_id ON custom_entity(user_id);
+CREATE INDEX idx_custom_entity_status ON custom_entity(status);
+CREATE INDEX idx_custom_entity_created_at ON custom_entity(created_at DESC);
+```
+
+## API Design
+
+### Custom Edge Functions
+*Document your custom Supabase Edge Functions*
+
+#### `custom-function-1`
+- **Purpose:** Brief description
+- **Endpoint:** `POST /functions/v1/custom-function-1`
+- **Input:**
+  ```typescript
+  interface CustomFunctionInput {
+    param1: string;
+    param2: number;
+  }
+  ```
+- **Output:**
+  ```typescript
+  interface CustomFunctionOutput {
+    success: boolean;
+    data: any;
+    message?: string;
+  }
+  ```
+- **Implementation:** Located in `packages/functions/custom-function-1/`
+
+#### `custom-function-2`
+- **Purpose:** Brief description
+- **Endpoint:** `GET /functions/v1/custom-function-2`
+- **Query Parameters:** `param1`, `param2`
+- **Implementation:** Located in `packages/functions/custom-function-2/`
+
+### REST API Patterns
+*Document your API conventions*
+
+- **Authentication:** All endpoints require Supabase JWT token
+- **Error Handling:** Consistent error response format
+- **Rate Limiting:** Implement where necessary
+- **Validation:** Input validation using TypeScript interfaces
+
+## Frontend Architecture
+
+### Component Structure
+```
+packages/web/src/
+├── components/           # Reusable UI components
+│   ├── custom/          # App-specific components
+│   └── ui/              # Base UI components (from @sge/ui)
+├── pages/               # Route components
+├── hooks/               # Custom React hooks
+├── lib/                 # Utility functions
+├── types/               # TypeScript type definitions
+└── store/               # State management (if needed)
+```
+
+### State Management Strategy
+*Document how application state is managed*
+
+- **Server State:** React Query for data fetching and caching
+- **Client State:** React hooks (useState, useReducer) for local state
+- **Global State:** React Context for shared application state
+- **Form State:** React Hook Form for complex forms
+
+### Routing Strategy
+```typescript
+// Route structure
+const routes = [
+  { path: '/', component: LandingPage },
+  { path: '/dashboard', component: Dashboard, protected: true },
+  { path: '/custom-feature', component: CustomFeature, protected: true },
+  // Add your routes
+];
+```
+
+{{#includeMobile}}
+## Mobile Architecture
+
+### Capacitor Configuration
+*Document mobile-specific configuration*
+
+```typescript
+// capacitor.config.ts
+export default {
+  appId: 'com.{{PROJECT_NAME}}.app',
+  appName: '{{PROJECT_NAME}}',
+  webDir: 'packages/web/dist',
+  bundledWebRuntime: false,
+  plugins: {
+    // Configure plugins as needed
+  }
+};
+```
+
+### Platform-Specific Considerations
+- **iOS:** Specific considerations and configurations
+- **Android:** Specific considerations and configurations
+- **Web:** Progressive Web App features
+
+### Native Features Integration
+- [ ] Camera access
+- [ ] Push notifications
+- [ ] Geolocation
+- [ ] Local storage
+- [ ] Biometric authentication
+{{/includeMobile}}
+
+{{#includeSubscriptions}}
+## Payment Integration
+
+### Stripe Configuration
+*Document subscription and payment handling*
+
+```typescript
+// Subscription tiers
+interface SubscriptionTier {
+  id: string;
+  name: string;
+  price: number;
+  features: string[];
+  stripePriceId: string;
+}
+
+const tiers: SubscriptionTier[] = [
+  {
+    id: 'basic',
+    name: 'Basic',
+    price: 9.99,
+    features: ['Feature 1', 'Feature 2'],
+    stripePriceId: 'price_xxx'
+  }
+];
+```
+
+### Webhook Handling
+- **Subscription Created:** Handle new subscription activation
+- **Subscription Updated:** Handle plan changes
+- **Payment Failed:** Handle failed payments and dunning
+- **Subscription Cancelled:** Handle cancellation workflow
+{{/includeSubscriptions}}
+
+## Security Considerations
+
+### Authentication & Authorization
+- **Row Level Security (RLS):** All database tables protected
+- **JWT Tokens:** Supabase handles token lifecycle
+- **Role-Based Access:** Implement user roles as needed
+- **API Security:** Rate limiting and input validation
+
+### Data Protection
+- **Encryption:** Data encrypted at rest and in transit
+- **GDPR Compliance:** User data export and deletion
+- **Audit Trails:** Log important user actions
+- **Privacy:** Data minimization and purpose limitation
+
+## Performance Optimization
+
+### Frontend Performance
+- **Code Splitting:** Route-based lazy loading
+- **Bundle Analysis:** Monitor and optimize bundle size
+- **Image Optimization:** Proper formats and lazy loading
+- **Caching:** Service worker and browser caching
+
+### Backend Performance
+- **Database Optimization:** Proper indexing and query optimization
+- **Edge Functions:** Minimize cold starts
+- **CDN:** Static asset delivery
+- **Connection Pooling:** Database connection management
+
+## Monitoring & Observability
+
+### Error Tracking
+- **Frontend Errors:** Browser error tracking
+- **Backend Errors:** Edge function error monitoring
+- **User Experience:** Core Web Vitals monitoring
+
+### Analytics
+- **User Behavior:** Track key user actions
+- **Performance Metrics:** Monitor application performance
+- **Business Metrics:** Track KPIs and conversion rates
+
+### Logging Strategy
+```typescript
+// Centralized logging
+interface LogEntry {
+  level: 'info' | 'warn' | 'error';
+  message: string;
+  context?: Record<string, any>;
+  timestamp: string;
+  userId?: string;
+}
+```
+
+## Deployment Architecture
+
+### Environment Strategy
+- **Development:** Local development environment
+- **Staging:** Pre-production testing environment
+- **Production:** Live application environment
+
+### CI/CD Pipeline
+```yaml
+# Basic deployment workflow
+stages:
+  - test
+  - build
+  - deploy
+
+test:
+  - Run TypeScript checks
+  - Run unit tests
+  - Run linting
+
+build:
+  - Build web application
+  - Build mobile apps (if applicable)
+
+deploy:
+  - Deploy to Vercel
+  - Deploy Edge Functions to Supabase
+  - Update database schema (if needed)
+```
+
+### Infrastructure Requirements
+- **Web Hosting:** Vercel (recommended)
+- **Database:** Supabase PostgreSQL
+- **Edge Functions:** Supabase Edge Runtime
+- **File Storage:** Supabase Storage{{#includeMobile}}
+- **Mobile Distribution:** App Store, Google Play{{/includeMobile}}
+
+## Development Workflow
+
+### Code Organization
+- **Monorepo:** All packages in single repository
+- **Shared Code:** Common utilities in `@sge/shared`
+- **Component Library:** Reusable UI in `@sge/ui`
+- **Type Safety:** Strict TypeScript throughout
+
+### Testing Strategy
+- **Unit Tests:** Critical business logic
+- **Integration Tests:** API endpoints and database operations
+- **E2E Tests:** Core user workflows{{#includeMobile}}
+- **Mobile Testing:** Cross-platform compatibility{{/includeMobile}}
+
+### Code Quality
+- **ESLint:** Code linting and style enforcement
+- **Prettier:** Code formatting
+- **TypeScript:** Strict type checking
+- **Pre-commit Hooks:** Automated quality checks
+
+## AI Development Integration
+
+### AI-Assisted Development Prompts
+
+```
+Help me implement [specific feature] for {{PROJECT_NAME}}.
+
+Technical context:
+- Using SGE template (React + Supabase + TypeScript)
+- Database schema: [describe relevant tables]
+- User flow: [describe the user interaction]
+
+I need help with:
+1. Component architecture and props design
+2. Database queries and RLS policies
+3. Error handling and edge cases
+4. Testing approach
+
+Please provide production-ready code with proper TypeScript types.
+```
+
+---
+**Status:** 🔨 In Progress  
+**Last Updated:** {{GENERATION_DATE}}  
+**Technical Lead:** [Name]  
+**Architecture Review:** [Schedule regular architecture reviews]
