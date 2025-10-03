@@ -1,6 +1,34 @@
 # {{PROJECT_NAME}}
 
-> Built with the [SGE Starter Template](https://github.com/gamalamadingdong/sge-starter) for rapid application development
+> **Built with SGE Template** - Production-ready React + Supabase + TypeScript architecture
+
+## 🎯 SGE Template Foundation
+
+This project leverages the **SGE (Service Generation Engine) Template** - a battle-tested foundation that provides:
+
+### 🏗️ **Architecture Components**
+- **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui
+- **Backend:** Supabase (PostgreSQL + Edge Functions + Auth + Realtime + Storage){{#includeMobile}}
+- **Mobile:** Capacitor for native iOS/Android compilation{{/includeMobile}}{{#includeSubscriptions}}
+- **Payments:** Stripe integration with subscription management{{/includeSubscriptions}}{{#includeNotifications}}
+- **Email:** Resend/SendGrid integration with transactional templates{{/includeNotifications}}
+- **Database:** Multi-tenant schema with role-based access control
+
+### 📦 **Pre-Built Systems**
+- ✅ **Authentication & User Management** (`packages/functions/auth/`)
+- ✅ **UI Component Library** (`packages/ui/` - shadcn/ui + Tailwind)
+- ✅ **Mobile-First Responsive Design** (`packages/shared/hooks/use-mobile.tsx`){{#includeSubscriptions}}
+- ✅ **Subscription & Payment Processing** (`packages/functions/subscriptions/`){{/includeSubscriptions}}{{#includeNotifications}}
+- ✅ **Email & Notification System** (`packages/functions/notifications/`){{/includeNotifications}}
+- ✅ **Multi-Tenant Database Schema** (`infra/schema/` - users, businesses, roles)
+- ✅ **Edge Functions & API Patterns** (Supabase Edge Functions with RLS)
+
+### 🎨 **Development Philosophy**
+**Don't rebuild - leverage proven patterns:**
+1. **Extend** SGE's database schema for your specific needs
+2. **Customize** SGE's UI components with your branding  
+3. **Add** business-specific Edge Functions alongside SGE's base functions
+4. **Configure** SGE's multi-tenant patterns for your domain
 
 ## 🚀 Quick Start
 

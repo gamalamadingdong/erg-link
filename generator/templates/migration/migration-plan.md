@@ -1,20 +1,43 @@
 # Legacy Application Migration to SGE Template
 
+🎯 **MIGRATION STRATEGY:** Transform legacy system using SGE Template as the target architecture
+
 ## Project Overview
 **Migration Target:** {{project_name}}
 **Business Type:** {{business_type}}
 **Migration Scope:** {{migration_scope}}
 **Timeline:** {{timeline}}
+**Target Architecture:** SGE Template (React + Supabase + TypeScript)
+
+## SGE Template Foundation
+
+### Target Architecture Components
+**The SGE template provides these ready-to-use components for your migration:**
+
+- **🎨 Frontend Stack:** React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui components
+- **🗄️ Backend Stack:** Supabase (PostgreSQL + Edge Functions + Auth + Realtime + Storage)
+- **📱 Mobile Stack:** Capacitor for native iOS/Android compilation
+- **💳 Payment Stack:** Stripe integration with subscription management (`packages/functions/subscriptions/`)
+- **📧 Email Stack:** Resend/SendGrid integration with templates (`packages/functions/notifications/`)
+- **🔐 Auth Stack:** Complete authentication system (`packages/functions/auth/`)
+- **🏗️ Architecture:** Multi-tenant SaaS with role-based access control (`infra/schema/`)
+
+### Migration Philosophy
+**Don't rebuild from scratch - adapt to proven SGE patterns:**
+1. **Map legacy entities** to SGE data models (see `infra/schema/core.sql`)
+2. **Adopt SGE components** instead of recreating UI (see `packages/ui/`)
+3. **Use SGE integration patterns** for external services (see `packages/functions/`)
+4. **Follow SGE mobile patterns** for responsive design (see `packages/shared/hooks/use-mobile.tsx`)
 
 ## Legacy System Analysis
 
-### Current Architecture
-<!-- AI should analyze and fill this section -->
-- **Framework/Technology:** [To be determined through analysis]
-- **Database:** [To be determined through analysis] 
-- **Authentication:** [To be determined through analysis]
-- **Key Dependencies:** [To be determined through analysis]
-- **Deployment Model:** [To be determined through analysis]
+### Current Architecture → SGE Mapping
+<!-- AI should analyze legacy system and map to SGE template components -->
+- **Framework/Technology:** [Current] → React + TypeScript + Vite
+- **Database:** [Current] → Supabase PostgreSQL with SGE schema patterns
+- **Authentication:** [Current] → Supabase Auth with SGE role patterns
+- **Key Dependencies:** [Current] → SGE template dependencies
+- **Deployment Model:** [Current] → Vercel + Supabase deployment
 
 ### Business Logic Inventory
 <!-- AI should catalog existing business logic -->

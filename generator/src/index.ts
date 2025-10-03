@@ -1715,14 +1715,14 @@ function showNextSteps(config: ProjectConfig): void {
     console.log(chalk.white(`  ${config.skipInstall ? '3' : '2'}. 🔍 Begin AI-assisted discovery (START HERE):`));
     console.log(chalk.gray(`     • Open docs/migration/ai-discovery-guide.md`));
     console.log(chalk.gray(`     • Start an AI chat session (GitHub Copilot, ChatGPT, Claude)`));
+    console.log(chalk.yellow(`     🎯 KEY CONTEXT: SGE template is your TARGET architecture!`));
     console.log(chalk.gray(`     • Use this prompt template:\n`));
     
-    console.log(chalk.cyan(`       "I'm migrating a ${config.migrationTarget === 'web' ? 'web application' : 
-      config.migrationTarget === 'mobile' ? 'mobile app' : 
-      config.migrationTarget === 'microservices' ? 'monolith to microservices' : 'system'}.`));
+    console.log(chalk.cyan(`       "I'm migrating to SGE Template (React + Supabase + TypeScript).`));
     console.log(chalk.cyan(`       Source: ${config.migrationSource || '[your-source-path]'}`));
-    console.log(chalk.cyan(`       Target: ${config.migrationTarget || 'modern full-stack'}`));
-    console.log(chalk.cyan(`       Help me analyze the codebase and plan migration strategy.`));
+    console.log(chalk.cyan(`       Target: SGE Template architecture (see packages/ and infra/)`));
+    console.log(chalk.cyan(`       The SGE template provides pre-built auth, UI, mobile, subscriptions.`));
+    console.log(chalk.cyan(`       Help me map my legacy system to SGE template patterns.`));
     console.log(chalk.cyan(`       Use docs/migration/ai-discovery-guide.md framework."\n`));
     
     console.log(chalk.white(`  ${config.skipInstall ? '4' : '3'}. 📋 Complete systematic analysis:`));

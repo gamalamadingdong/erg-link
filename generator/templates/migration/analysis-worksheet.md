@@ -1,10 +1,33 @@
 # Legacy System Analysis Worksheet
 
+🎯 **ANALYSIS GOAL:** Map legacy system to SGE Template architecture and identify migration path
+
 ## System Overview
 **Project Name:** ___________________________
 **Current Technology Stack:** ___________________________
 **Business Domain:** ___________________________
 **Analysis Date:** ___________________________
+**SGE Template Version:** 1.0
+
+## 🎯 SGE Template Mapping Assessment
+
+### Target Architecture (SGE Template)
+The SGE template provides these components as your migration target:
+- **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui
+- **Backend:** Supabase (PostgreSQL + Edge Functions + Auth + Realtime + Storage)
+- **Mobile:** Capacitor for iOS/Android native compilation
+- **Payments:** Stripe integration with subscription management
+- **Email:** Resend/SendGrid integration with templates
+- **Architecture:** Multi-tenant SaaS with role-based access control
+
+### Legacy → SGE Mapping Questions
+*Answer these to understand how your legacy system maps to SGE template:*
+
+- [ ] **Frontend Migration:** How does current frontend compare to React + TypeScript?
+- [ ] **Database Migration:** How does current database map to Supabase PostgreSQL?
+- [ ] **Auth Migration:** How does current auth system map to Supabase Auth?
+- [ ] **Business Logic Migration:** What custom logic needs to move to Edge Functions?
+- [ ] **Integration Migration:** Which external systems need new connection patterns?
 
 ## 📋 Codebase Analysis Checklist
 

@@ -1,36 +1,56 @@
 # AI-Assisted Legacy System Discovery Guide
 
-This guide helps AI analyze existing codebases and gather migration requirements through structured discovery sessions.
+This guide helps AI analyze existing codebases and plan migration to the **SGE Template architecture**.
 
-## Phase 1: Codebase Analysis Framework
+🎯 **CRITICAL CONTEXT:** The SGE template provides your TARGET architecture:
+- **Tech Stack:** React + TypeScript + Vite + Supabase + Capacitor + Tailwind + shadcn/ui
+- **Architecture Patterns:** Multi-tenant SaaS, real-time subscriptions, mobile-first responsive design
+- **Data Models:** Users, businesses, roles, subscriptions, notifications - see `infra/schema/`
+- **Component Library:** Pre-built auth, UI components, mobile compliance - see `packages/`
+- **Integration Patterns:** Stripe subscriptions, email notifications, Edge Functions - see `packages/functions/`
 
-### Initial Code Scanning
-Use these prompts to guide AI analysis of the existing system:
+## Phase 1: SGE-Focused Codebase Analysis
 
-**Architecture Analysis:**
+### Analysis Goal: Map Legacy → SGE Template
+Use these prompts to analyze the legacy system **in context of migrating to SGE template**:
+
+**SGE Template Migration Analysis:**
 ```
-Please analyze this codebase and provide:
-1. **Technology Stack Identification:**
-   - Primary framework/language
-   - Database technology and ORM/query patterns
-   - Authentication/authorization approach
-   - Frontend architecture (SPA, SSR, mobile, etc.)
-   - Build tools and dependency management
-   - Deployment and hosting patterns
+Analyze this legacy codebase for migration to SGE Template architecture.
 
-2. **Code Structure Assessment:**
-   - Project organization and folder structure
-   - Separation of concerns (MVC, layered, etc.)
-   - Code quality indicators (TypeScript usage, linting, etc.)
-   - Test coverage and testing patterns
-   - Documentation quality and completeness
+SGE TEMPLATE PROVIDES (your target):
+- Frontend: React + TypeScript + Vite + Tailwind + shadcn/ui
+- Backend: Supabase (PostgreSQL + Edge Functions + Auth + Realtime)
+- Mobile: Capacitor for native iOS/Android apps
+- Payments: Stripe subscriptions (see packages/functions/subscriptions/)
+- Email: Resend/SendGrid notifications (see packages/functions/notifications/)
+- Auth: Complete auth system (see packages/functions/auth/)
+- Schema: Multi-tenant with users/businesses/roles (see infra/schema/)
 
-3. **Business Logic Inventory:**
-   - Core domain models and entities
-   - Key business processes and workflows
-   - Integration points and external dependencies
-   - User roles and permissions structure
-   - Data validation and business rules
+ANALYZE LEGACY SYSTEM FOR SGE MAPPING:
+1. **Frontend Migration Path:**
+   - Current framework → How to migrate to React + TypeScript?
+   - Current styling → How to adopt Tailwind + shadcn/ui components?
+   - Current state management → How to use React Query + Supabase?
+   - Current routing → How to adopt React Router patterns?
+
+2. **Backend Migration Path:**
+   - Current database → How to migrate to Supabase PostgreSQL?
+   - Current API → How to use Supabase Edge Functions + RLS?
+   - Current auth → How to migrate to Supabase Auth?
+   - Current file storage → How to use Supabase Storage?
+
+3. **Business Logic Mapping:**
+   - Core entities → How do they map to SGE schema (users/businesses/roles)?
+   - Business processes → Which can use SGE functions vs. need custom?
+   - User permissions → How to map to SGE role-based access control?
+   - Integrations → Which SGE patterns (Stripe, email) can be adopted?
+
+4. **SGE Template Opportunity Assessment:**
+   - Which SGE components can replace custom code?
+   - What business value comes from SGE's multi-tenant architecture?
+   - How can SGE's mobile-first design improve user experience?
+   - What new capabilities (subscriptions, notifications) could be added?
 ```
 
 **Technical Debt Evaluation:**
@@ -206,11 +226,43 @@ At the end of the discovery session, AI should produce:
 - **Suggested Timeline:** [High-level timeline with phases]
 - **Risk Mitigation:** [Key risk areas and mitigation strategies]
 
+## SGE Template Component Exploration
+
+During discovery, explore how SGE template components can accelerate migration:
+
+### Pre-Built Components to Leverage
+- **Auth System:** `packages/functions/auth/` - Complete user management
+- **UI Library:** `packages/ui/` - shadcn/ui components with Tailwind
+- **Mobile Hooks:** `packages/shared/hooks/use-mobile.tsx` - Responsive design
+- **Database Schema:** `infra/schema/core.sql` - Multi-tenant foundation
+- **Subscription System:** `packages/functions/subscriptions/` - Stripe integration
+- **Email System:** `packages/functions/notifications/` - Transactional emails
+
+### Discovery Questions for Component Adoption
+```
+For each major legacy system component, ask:
+
+1. **Can I adopt SGE's [component] instead of rebuilding?**
+   - What customization would SGE's component need?
+   - How much development time would this save?
+   - What business value comes from SGE's proven patterns?
+
+2. **How does my data model map to SGE's schema?**
+   - Which entities map to users/businesses/roles?
+   - What custom tables need to be added?
+   - How can I leverage SGE's multi-tenant isolation?
+
+3. **What new capabilities could SGE enable?**
+   - Could SGE's subscription system add revenue streams?
+   - Could SGE's mobile patterns improve user experience?
+   - Could SGE's notification system improve engagement?
+```
+
 ## Next Steps
-1. Generate detailed migration plan with phases and timelines
-2. Create technical architecture design for SGE template configuration
-3. Develop data migration strategy and scripts
-4. Set up project structure and development workflow
+1. Generate detailed migration plan emphasizing SGE component adoption
+2. Design data migration strategy mapping to SGE schema patterns
+3. Create implementation roadmap prioritizing SGE template leverage
+4. Set up SGE development environment and explore components
 ```
 
 ## Interactive Discovery Prompts
@@ -219,48 +271,58 @@ At the end of the discovery session, AI should produce:
 Use this prompt to begin your AI discovery conversation:
 
 ```
-I've completed the automated analysis of my legacy system using the SGE migration framework. 
+I'm migrating a legacy system to the SGE Template architecture. I've completed automated analysis.
 
-ANALYSIS SUMMARY:
+SGE TEMPLATE CONTEXT:
+The SGE template provides a complete React + Supabase + TypeScript stack with:
+- Pre-built auth system, UI components, mobile support
+- Multi-tenant database schema with users/businesses/roles
+- Stripe subscriptions, email notifications, Edge Functions
+- See packages/ and infra/schema/ for complete architecture
+
+LEGACY SYSTEM ANALYSIS SUMMARY:
 - Technology Stack: [Summary from analysis-worksheet.md]
 - Key Business Entities: [List from analysis]
 - Main Functionality: [Core features identified]
 - Technical Challenges: [Issues found]
 
-Now I need to have a deeper discovery conversation to understand:
-1. Critical business logic that isn't obvious from code
-2. Edge cases and complex workflows
-3. User experience requirements and pain points
-4. Migration risks and dependencies
-5. Business context and domain-specific rules
+MIGRATION FOCUS:
+I need to understand how to map my legacy system to SGE template patterns:
+1. How do my business entities map to SGE's users/businesses/roles schema?
+2. What custom business logic needs to move to SGE Edge Functions?
+3. How can I leverage SGE's pre-built components vs. custom development?
+4. Which SGE patterns (auth, subscriptions, notifications) apply to my use case?
+5. What legacy functionality doesn't fit SGE patterns and needs adaptation?
 
-Let's start with the most critical functionality. Based on your analysis, what questions do you have about the business logic and user workflows?
+Based on the SGE template architecture, what questions do you have about mapping my legacy system to these proven patterns?
 ```
 
 ### Follow-Up Discovery Questions
 During the interactive session, use these question frameworks:
 
-**Critical Functionality Deep Dive:**
+**SGE Template Mapping Deep Dive:**
 ```
-Based on my code analysis, I found these complex areas: [SPECIFIC CODE AREAS]
+Based on my analysis, I found these complex areas: [SPECIFIC CODE AREAS]
 
-Help me understand:
-- What business scenarios trigger this functionality?
-- Are there edge cases or exception handling that's critical?
-- What happens if this process fails - what's the recovery procedure?
-- How do users typically interact with this feature?
-- Are there business rules that aren't enforced in code?
+For SGE Template migration:
+- How does this functionality map to SGE's Edge Functions architecture?
+- Can this leverage SGE's pre-built components (auth, subscriptions, notifications)?
+- What business rules need custom Edge Functions vs. database constraints?
+- How does this integrate with SGE's multi-tenant user/business model?
+- What SGE patterns (RLS, realtime, storage) apply to this functionality?
 ```
 
-**User Workflow Clarification:**
+**SGE Role & Permission Mapping:**
 ```
-I see these user roles in the system: [IDENTIFIED ROLES]
+I see these user roles: [IDENTIFIED ROLES]
+SGE template provides: OWNER, ADMIN, MANAGER, USER roles with business-based isolation
 
-For each role, help me understand:
-- What are their primary daily tasks with this system?
-- What workflows are most critical to get right in the migration?
-- Where do users typically encounter problems or confusion?
-- What would make their experience significantly better in the new system?
+For SGE migration:
+- How do my roles map to SGE's user_business_roles pattern?
+- What permissions can use SGE's RLS policies vs. need custom logic?
+- How do my user workflows fit SGE's multi-tenant business model?
+- What role-specific features can leverage SGE's pre-built components?
+- How can SGE's business invitation system improve user onboarding?
 ```
 
 **Integration and Data Flow Questions:**
