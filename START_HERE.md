@@ -11,6 +11,36 @@ This prompt will guide you through filling out all the Working Memory files with
 ```
 I just cloned the AI-Assisted Development Template and need help customizing it for my new project.
 
+### First: Choose Your Interaction Mode
+
+Before we begin, I need to choose how we'll work together. Here are my options:
+
+**Builder Mode (Default):**
+- For: Software developers who want fast, concise implementation
+- Style: Code-first with minimal explanation
+- Choose if: I'm comfortable with software engineering
+
+**Builder Mode - Verbose:**
+- For: Software developers who want detailed explanations
+- Style: Code-first BUT explains design decisions, trade-offs, alternatives
+- Choose if: I want to understand the "why" behind technical choices
+
+**Domain Expert Mode:**
+- For: Scientists, engineers, data analysts from non-software fields
+- Style: Educational implementation with domain analogies
+- Tech stack: SIMPLE and maintainable (Python, Flask, SQLite)
+- Domain expertise: UNLIMITED depth in my field
+- Choose if: I'm technical but not a software engineer
+
+**Conversational Mode:**
+- For: Product managers, designers, business users
+- Style: Explain-first with plain language
+- Choose if: I'm non-technical and want to understand before implementing
+
+**My choice:** [Tell me which mode, or ask "What interaction modes are available?" for more details]
+
+---
+
 IMPORTANT: Before asking me questions, please search through my codebase to discover answers automatically. Look for:
 - package.json, requirements.txt, go.mod, Cargo.toml (for tech stack)
 - README.md (for project description and goals)
@@ -121,6 +151,8 @@ For each section:
 6. Move to the next section
 7. At the end, give me a summary of what we've documented
 
+**Remember:** Use the interaction mode I selected above throughout this process.
+
 Let's start by searching the codebase for Project Brief information!
 ```
 
@@ -140,7 +172,20 @@ This prompt will:
 Once your Working Memory is filled out:
 1. Review each file to make sure the AI captured everything correctly
 2. Make any manual adjustments needed
-3. Start your first development session with: `"Read working-memory/activeContext.md and let's start building!"`
+3. Verify your interaction mode is appropriate (you can switch anytime with "Switch to [mode] mode")
+4. Start your first development session with: `"Read working-memory/activeContext.md and let's start building!"`
+
+## Quick Mode Reference
+
+**To switch modes later:**
+- `"Switch to builder mode"` - Fast, concise
+- `"Switch to verbose builder mode"` - Detailed explanations
+- `"Switch to domain expert mode"` - Educational, simple tech
+- `"Switch to conversational mode"` - Business-focused
+
+**To ask about modes:**
+- `"What interaction modes are available?"`
+- `"Explain the difference between builder and domain expert mode"`
 
 ---
 
