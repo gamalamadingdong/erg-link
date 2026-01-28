@@ -194,6 +194,7 @@ Once your Working Memory is filled out:
 - `"Switch to verbose builder mode"` - Detailed explanations
 - `"Switch to domain expert mode"` - Educational, simple tech
 - `"Switch to conversational mode"` - Business-focused
+- `"Switch to orchestrator mode"` - Delegation & Management
 
 **To ask about modes:**
 - `"What interaction modes are available?"`

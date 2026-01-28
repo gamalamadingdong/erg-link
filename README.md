@@ -231,6 +231,17 @@ git add .
 git commit -m "Initial commit from AI-assisted template"
 ```
 
+git commit -m "Initial commit from AI-assisted template"
+```
+
+### 1B. ...Or Add to an Existing Project
+If you already have a codebase, just copy these three folders into your root:
+1.  `.agent/` (The "Brain" - Roles & Prompts)
+2.  `working-memory/` (The "Memory" - Context files)
+3.  `.github/instructions/` (The "Interface" - Copilot setup)
+
+Then, run the **Initialization Prompt** in `START_HERE.md`. It is designed to read your *existing* code and populate the memory files for you.
+
 ### 2. Customize Working Memory
 
 Update the template files in `working-memory/` with your project's context:
