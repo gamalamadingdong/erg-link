@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 import { useAppStore } from './store/appStore';
-import { webBluetoothService } from './services/bluetooth.web';
+import { bluetoothService } from './services/bluetooth';
 
 function App() {
   const {
@@ -19,32 +19,33 @@ function App() {
     setError(null);
 
     try {
-      // Check availability
-      const available = await webBluetoothService.isAvailable();
+      // Initialize and check availability
+      await bluetoothService.initialize();
+      const available = await bluetoothService.isAvailable();
       if (!available) {
-        setError('Bluetooth is not available. Please use Chrome or a Bluetooth-enabled browser.');
+        setError('Bluetooth is not available. Please enable Bluetooth and try again.');
         return;
       }
 
       // Set up data callback
-      webBluetoothService.onData((data) => {
+      bluetoothService.onData((data) => {
         updateCurrentData(data);
       });
 
       // Set up device callback
-      webBluetoothService.onDeviceDiscovered((device) => {
+      bluetoothService.onDeviceDiscovered((device) => {
         setConnectedDevice(device);
       });
 
       setConnectionState('scanning');
 
-      // This will open the browser's device picker
-      await webBluetoothService.startScan();
+      // Start scanning/device picker
+      await bluetoothService.startScan();
 
       // If we got a device, connect to it
-      const device = webBluetoothService.getConnectedDevice();
+      const device = bluetoothService.getConnectedDevice();
       if (device) {
-        await webBluetoothService.connect(device.id);
+        await bluetoothService.connect(device.id);
         setConnectionState('connected');
       }
     } catch (err) {
@@ -55,7 +56,7 @@ function App() {
   };
 
   const handleDisconnect = async () => {
-    await webBluetoothService.disconnect();
+    await bluetoothService.disconnect();
     setConnectionState('disconnected');
     setConnectedDevice(null);
   };
@@ -87,8 +88,8 @@ function App() {
           <div className="flex items-center justify-between mb-4">
             <span className="text-gray-400">Status</span>
             <span className={`font-semibold ${connectionState === 'connected' ? 'text-green-400' :
-                connectionState === 'scanning' || connectionState === 'connecting' ? 'text-yellow-400' :
-                  'text-gray-400'
+              connectionState === 'scanning' || connectionState === 'connecting' ? 'text-yellow-400' :
+                'text-gray-400'
               }`}>
               {connectionState === 'disconnected' && 'Not Connected'}
               {connectionState === 'scanning' && 'Scanning...'}
