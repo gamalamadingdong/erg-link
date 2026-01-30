@@ -1,109 +1,59 @@
-# Product Context: [Your Product Name]
+# Product Context
 
-**Last Updated**: [DATE] - Update when user needs or business model changes
+**Last Updated**: 2026-01-28
+**Status**: Revised (Bridge-First Strategy)
 
-## User Problems Being Solved
+## The Core Problem: "The Wireless Gap"
 
-### Primary Pain Point
-**"[State the main problem in user's own words - use quotes from interviews/research]"**
+We have two distinct user problems that share the exact same technical bottleneck: **Connecting a PM5 to the Cloud without friction.**
 
-Describe the problem:
-- [What triggers this pain point?]
-- [How do users currently work around it?]
-- [What does this cost them (time/money/frustration)?]
-- [Why haven't existing solutions solved this?]
+### Problem A: The "Cabling Nightmare" (Racing)
+*   **User**: Club Coaches running events.
+*   **Pain**: Connecting 24 ergs with cables is impossible for daily use.
+*   **Need**: A wireless way to broadcast race data to a big screen.
 
-Example:
-> **"I spend 3 hours every week copying data between spreadsheets because our tools don't talk to each other"**
-> - Triggered every Monday when compiling weekly reports
-> - Currently use manual copy/paste and risk errors
-> - Costs 150+ hours per year of manual work
-> - Existing tools are enterprise-only or too complex
+### Problem B: The "Clipboard Nightmare" (Tracking)
+*   **User**: High School Coaches & Coxswains.
+*   **Pain**: Manually writing down scores from 40 athletes after a workout is tedious and error-prone. OCR (scanning screens) is a patch, but direct data is better.
+*   **Need**: A way to instantly "grab" the data from an erg and log it to the athlete's profile.
 
-### Secondary Pain Points
-1. **[Pain Point 2]**: [Brief description and impact]
-2. **[Pain Point 3]**: [Brief description and impact]
-3. **[Pain Point 4]**: [Brief description and impact]
+## The Solution: "The Universal Bridge"
 
-## Business Model
+We will build **The Bridge** as our primary product. It is a connectivity layer that sits between the Hardware (PM5) and the Application Layer.
 
-**[How will this make money? Or is it personal/open source?]**
+### 1. The Bridge (Client)
+A streamlined mobile app (or web app) that:
+*   Connects to PM5 via Bluetooth.
+*   Extracts Data (Watts, Distance, Stroke Rate).
+*   **Mode A (Race)**: Streams live data to a Race Server via WebSockets.
+*   **Mode B (Log)**: Captures workout summary and uploads to `train-better` database.
 
-- [Revenue stream 1 - e.g., Subscription ($X/month)]
-- [Revenue stream 2 - e.g., Usage-based pricing]
-- [Revenue stream 3 - e.g., One-time purchase]
-- [Customer acquisition strategy]
-- [Target metrics - e.g., 1000 users by Q2 2026]
+### 2. The Applications (Consumers)
+Once the Bridge exists, we can build:
+*   **Erg Racer**: A web dashboard that listens to Bridge streams and visualizes boats.
+*   **Team Tracker**: A feature in `train-better` that aggregates Bridge logs.
 
-Examples:
-- **B2C SaaS**: $9/month subscription, freemium model, 100K free users → 5K paid
-- **B2B SaaS**: $49/user/month, annual contracts, enterprise tier at $499/month
-- **Marketplace**: 15% transaction fee, sellers and buyers both on platform
-- **Personal Project**: No monetization, building for own use and learning
-- **Open Source**: Free software, monetize via consulting/support
+## Strategy: Bridge First
 
-## Target Users
+We will focus 100% on building the robust connectivity layer first. 
+*   **Deployment**: Validating if we need a Native App (React Native/Expo) for iOS reliability, or if Web Bluetooth is sufficient.
+*   **Differentiation**: Unlike Concept2's utility, our Bridge is designed for **Group/Fleet Management**, not just single-user logging.
 
-### Primary User Persona
-**[Name/Role]**: [e.g., "Sarah, Small Business Owner"]
-- **Demographics**: [Age, location, industry, company size]
-- **Goals**: [What they want to achieve]
-- **Frustrations**: [What blocks them today]
-- **Tech Comfort**: [Novice | Intermediate | Expert]
+---
 
-### Secondary User Persona (if applicable)
-**[Name/Role]**: [e.g., "Mike, Team Member"]
-- **Demographics**: [Relevant details]
-- **Goals**: [What they want to achieve]
-- **Relationship to primary**: [How they interact]
+## Positioning vs. RowHero
 
-## User Experience Goals
+RowHero exists and does similar things. Our differentiation:
 
-### Onboarding
-1. [First step - e.g., "Sign up with Google in 10 seconds"]
-2. [Second step - e.g., "Import existing data from CSV"]
-3. [Third step - e.g., "Complete first task in 2 minutes"]
-4. [Success metric - e.g., "80% of users complete onboarding"]
+| RowHero | Erg Bridge |
+| :--- | :--- |
+| Paid SaaS | Free (or very cheap) |
+| Full account + team setup | Guest mode, no signup |
+| Coach-initiated workflows | Athlete just connects |
+| Feature-heavy dashboard | "It just works" simplicity |
 
-### Core Experience
-1. **[Key UX Goal 1]**: [Description - e.g., "Mobile-first design"]
-2. **[Key UX Goal 2]**: [Description - e.g., "Works offline"]
-3. **[Key UX Goal 3]**: [Description - e.g., "One-click actions"]
-4. **[Key UX Goal 4]**: [Description - e.g., "Dark mode support"]
+**Core Philosophy**: The hardest part is **adoption**. If 50% of athletes don't open the app, you lose 50% of data. The solution is to make it so lightweight that there's no reason *not* to use it.
 
-## Competitive Landscape
+**Value Proposition**: Capture data that would otherwise be lost. Whether racing or random Tuesday - if you row, it's logged.
 
-### Direct Competitors
-1. **[Competitor 1]**: [Their strength] - but [their weakness]
-2. **[Competitor 2]**: [Their strength] - but [their weakness]
-3. **[Competitor 3]**: [Their strength] - but [their weakness]
 
-### Your Advantage
-**Why choose your product?**
-- ✅ [Differentiator 1 - e.g., "10x cheaper"]
-- ✅ [Differentiator 2 - e.g., "Works offline"]
-- ✅ [Differentiator 3 - e.g., "No learning curve"]
-- ✅ [Differentiator 4 - e.g., "Open source"]
-
-**Why NOT use existing alternatives?**
-- ❌ [Problem with alternative 1]
-- ❌ [Problem with alternative 2]
-- ❌ [Problem with alternative 3]
-
-## Success Metrics
-
-### Year 1 Goals
-1. **[Metric 1]**: [Target - e.g., "Launch MVP"]
-2. **[Metric 2]**: [Target - e.g., "100 beta users"]
-3. **[Metric 3]**: [Target - e.g., "$1K MRR"]
-4. **[Metric 4]**: [Target - e.g., "4.5+ star rating"]
-
-### Long-term Vision (3-5 years)
-1. **[Vision Goal 1]**: [Aspirational target]
-2. **[Vision Goal 2]**: [Aspirational target]
-3. **[Vision Goal 3]**: [Aspirational target]
-
-Example:
-> Year 1: 1,000 active users, $5K MRR  
-> Year 3: 50,000 active users, $100K MRR, break even  
-> Year 5: 500,000 active users, $1M+ ARR, profitable
