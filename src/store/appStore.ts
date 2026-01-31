@@ -15,6 +15,17 @@ interface AppState {
     sessionStartTime: number | null;
     sessionData: PM5Data[];
 
+    // Remote Session (Supabase)
+    joinCode: string | null;
+    sessionId: string | null;
+    participantId: string | null;
+    isJoining: boolean;
+    activeWorkout: { type: 'fixed_distance' | 'fixed_time'; value: number; split?: number } | null;
+    raceState: number | null;
+
+    // Participant
+    participantName: string | null;
+
     // Actions
     setConnectionState: (state: ConnectionState) => void;
     setConnectedDevice: (device: PM5Device | null) => void;
@@ -23,6 +34,10 @@ interface AppState {
     updateCurrentData: (data: PM5Data) => void;
     startSession: () => void;
     endSession: () => PM5Data[];
+    setParticipantName: (name: string | null) => void;
+    setSessionInfo: (info: { sessionId: string; participantId: string; joinCode: string } | null) => void;
+    setActiveWorkout: (workout: { type: 'fixed_distance' | 'fixed_time'; value: number; split?: number } | null) => void;
+    setRaceState: (state: number | null) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -35,7 +50,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     sessionStartTime: null,
     sessionData: [],
 
+    // Remote Session
+    joinCode: null,
+    sessionId: null,
+    participantId: null,
+    isJoining: false,
+    activeWorkout: null,
+    raceState: null,
+
+    participantName: null,
+
     // Actions
+    setParticipantName: (name) => set({ participantName: name }),
+    setActiveWorkout: (workout) => set({ activeWorkout: workout }),
+    setRaceState: (state) => set({ raceState: state }),
+    setSessionInfo: (info) => set(info ? { ...info } : { sessionId: null, participantId: null, joinCode: null, activeWorkout: null }),
     setConnectionState: (connectionState) => set({ connectionState }),
 
     setConnectedDevice: (connectedDevice) => set({ connectedDevice }),

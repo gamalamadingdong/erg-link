@@ -42,6 +42,10 @@ export interface BluetoothService {
     // Data
     onData(callback: (data: PM5Data) => void): void;
     getConnectedDevice(): PM5Device | null;
+
+    // Commands
+    programWorkout(workout: { type: 'fixed_distance' | 'fixed_time', value: number, split?: number }): Promise<void>;
+    setRaceState(state: number): Promise<void>;
 }
 
 // PM5 Bluetooth UUIDs (Concept2 specific)
@@ -56,3 +60,13 @@ export type ConnectionState =
     | 'connecting'
     | 'connected'
     | 'error';
+
+export const RaceOperationType = {
+    Disable: 0,
+    WaitToStart: 8,
+    Start: 9,
+    FalseStart: 10,
+    Terminate: 11,
+} as const;
+
+export type RaceOperationType = typeof RaceOperationType[keyof typeof RaceOperationType];

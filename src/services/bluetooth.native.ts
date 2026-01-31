@@ -7,14 +7,25 @@
 
 import { BleClient, type BleDevice, type ScanResult } from '@capacitor-community/bluetooth-le';
 import type { BluetoothService, PM5Device, PM5Data, ConnectionState } from './bluetooth.types';
-import { PM5_SERVICE_UUID, PM5_ROWING_STATUS_UUID } from './bluetooth.types';
+import {
+    PM5_SERVICES,
+    PM5_CHARACTERISTICS,
+    PM5DataAggregator,
+} from '../lib/pm5-protocol';
 
 export class NativeBluetoothService implements BluetoothService {
     private connectedDevice: BleDevice | null = null;
+    private connectedDeviceName: string = 'PM5';
     private deviceCallback: ((device: PM5Device) => void) | null = null;
     private dataCallback: ((data: PM5Data) => void) | null = null;
     private connectionState: ConnectionState = 'disconnected';
     private isScanning = false;
+
+    /** PM5 data aggregator - combines data from multiple characteristics */
+    private dataAggregator = new PM5DataAggregator();
+
+    /** Characteristics we're subscribed to */
+    private subscribedCharacteristics: string[] = [];
 
     async initialize(): Promise<void> {
         try {
@@ -54,7 +65,7 @@ export class NativeBluetoothService implements BluetoothService {
         try {
             await BleClient.requestLEScan(
                 {
-                    services: [PM5_SERVICE_UUID],
+                    services: [PM5_SERVICES.PM5],
                     namePrefix: 'PM5',
                 },
                 (result: ScanResult) => {
@@ -102,25 +113,22 @@ export class NativeBluetoothService implements BluetoothService {
             // Stop scanning before connecting
             await this.stopScan();
 
+            // Reset data aggregator for new session
+            this.dataAggregator.reset();
+
             // Connect to the device
             await BleClient.connect(deviceId, (disconnectedDeviceId) => {
                 console.log('[NativeBluetooth] Device disconnected:', disconnectedDeviceId);
                 this.connectionState = 'disconnected';
                 this.connectedDevice = null;
+                this.subscribedCharacteristics = [];
             });
 
             // Store connected device
             this.connectedDevice = { deviceId };
 
-            // Subscribe to rowing status notifications
-            await BleClient.startNotifications(
-                deviceId,
-                PM5_SERVICE_UUID,
-                PM5_ROWING_STATUS_UUID,
-                (value) => {
-                    this.handleData(value);
-                }
-            );
+            // Subscribe to multiple PM5 characteristics for comprehensive data
+            await this.subscribeToCharacteristics(deviceId);
 
             this.connectionState = 'connected';
             console.log('[NativeBluetooth] Connected and subscribed to notifications');
@@ -132,26 +140,82 @@ export class NativeBluetoothService implements BluetoothService {
         }
     }
 
+    /**
+     * Subscribe to all relevant PM5 characteristics
+     */
+    private async subscribeToCharacteristics(deviceId: string): Promise<void> {
+        const characteristicsToSubscribe = [
+            PM5_CHARACTERISTICS.ROWING_GENERAL_STATUS,      // 0x31 - time, distance, state
+            PM5_CHARACTERISTICS.ROWING_ADDITIONAL_STATUS1,  // 0x32 - pace, watts, stroke rate
+            PM5_CHARACTERISTICS.ROWING_ADDITIONAL_STATUS2,  // 0x33 - calories, strokes, HR
+        ];
+
+        for (const charUUID of characteristicsToSubscribe) {
+            try {
+                await BleClient.startNotifications(
+                    deviceId,
+                    PM5_SERVICES.PM5,
+                    charUUID,
+                    (value) => this.handleCharacteristicData(charUUID, value)
+                );
+                this.subscribedCharacteristics.push(charUUID);
+                console.log('[NativeBluetooth] Subscribed to:', charUUID);
+            } catch (error) {
+                console.warn('[NativeBluetooth] Failed to subscribe to', charUUID, error);
+                // Continue with other characteristics even if one fails
+            }
+        }
+    }
+
+    /**
+     * Handle incoming data from any PM5 characteristic
+     */
+    private handleCharacteristicData(charUUID: string, value: DataView): void {
+        try {
+            // Feed data to the aggregator
+            this.dataAggregator.update(charUUID, value);
+
+            // Get combined data and notify callback
+            if (this.dataCallback) {
+                const pm5Data = this.dataAggregator.getData();
+
+                // Convert to the simpler PM5Data interface for the UI
+                this.dataCallback({
+                    timestamp: pm5Data.timestamp,
+                    elapsedTime: pm5Data.elapsedTime,
+                    distance: pm5Data.distance,
+                    pace: pm5Data.pace,
+                    strokeRate: pm5Data.strokeRate,
+                    watts: pm5Data.watts,
+                    heartRate: pm5Data.heartRate,
+                    calories: pm5Data.calories,
+                });
+            }
+        } catch (error) {
+            console.error('[NativeBluetooth] Failed to parse data:', error);
+        }
+    }
+
     async disconnect(): Promise<void> {
         if (!this.connectedDevice) {
             console.warn('[NativeBluetooth] No device connected');
             return;
         }
 
-        try {
-            // Stop notifications first
-            await BleClient.stopNotifications(
-                this.connectedDevice.deviceId,
-                PM5_SERVICE_UUID,
-                PM5_ROWING_STATUS_UUID
-            );
-        } catch (error) {
-            // Ignore errors during cleanup
-            console.warn('[NativeBluetooth] Error stopping notifications:', error);
+        const deviceId = this.connectedDevice.deviceId;
+
+        // Stop all notifications
+        for (const charUUID of this.subscribedCharacteristics) {
+            try {
+                await BleClient.stopNotifications(deviceId, PM5_SERVICES.PM5, charUUID);
+            } catch (error) {
+                console.warn('[NativeBluetooth] Error stopping notifications for', charUUID);
+            }
         }
+        this.subscribedCharacteristics = [];
 
         try {
-            await BleClient.disconnect(this.connectedDevice.deviceId);
+            await BleClient.disconnect(deviceId);
             console.log('[NativeBluetooth] Disconnected');
         } catch (error) {
             console.error('[NativeBluetooth] Disconnect failed:', error);
@@ -159,6 +223,7 @@ export class NativeBluetoothService implements BluetoothService {
 
         this.connectedDevice = null;
         this.connectionState = 'disconnected';
+        this.dataAggregator.reset();
     }
 
     isConnected(): boolean {
@@ -173,41 +238,16 @@ export class NativeBluetoothService implements BluetoothService {
         if (!this.connectedDevice) return null;
         return {
             id: this.connectedDevice.deviceId,
-            name: 'PM5', // BleDevice doesn't store name after connection
+            name: this.connectedDeviceName,
         };
     }
 
-    private handleData(value: DataView): void {
-        if (!this.dataCallback) return;
-
-        try {
-            const data = this.parsePM5Data(value);
-            this.dataCallback(data);
-        } catch (error) {
-            console.error('[NativeBluetooth] Failed to parse data:', error);
-        }
+    async programWorkout(workout: { type: 'fixed_distance' | 'fixed_time', value: number, split?: number }): Promise<void> {
+        console.log('[NativeBluetooth] Program workout not implemented yet:', workout);
     }
 
-    private parsePM5Data(value: DataView): PM5Data {
-        // PM5 rowing status characteristic format
-        // This is a simplified parser - full implementation would handle
-        // various message types based on the first byte
-        // Reference: ErgometerJS for complete protocol
-
-        const elapsedTime = value.getUint16(0, true) / 100; // centiseconds to seconds
-        const distance = value.getUint16(2, true) / 10;     // decimeters to meters
-        const pace = value.getUint16(4, true) / 100;        // centiseconds per 500m
-        const strokeRate = value.getUint8(6);
-        const watts = value.getUint16(7, true);
-
-        return {
-            timestamp: Date.now(),
-            elapsedTime,
-            distance,
-            pace,
-            strokeRate,
-            watts,
-        };
+    async setRaceState(state: number): Promise<void> {
+        console.log('[NativeBluetooth] Set race state not implemented yet:', state);
     }
 }
 
