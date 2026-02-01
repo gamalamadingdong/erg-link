@@ -224,7 +224,13 @@ class WebBluetoothService implements BluetoothService {
         return this.connected;
     }
 
-    async programWorkout(workout: { type: 'fixed_distance' | 'fixed_time', value: number, split?: number }): Promise<void> {
+    async programWorkout(workout: {
+        type: 'fixed_distance' | 'fixed_time' | 'interval_distance' | 'interval_time',
+        value: number,
+        split?: number,
+        rest?: number,
+        repeats?: number
+    }): Promise<void> {
         if (!this.server || !this.connected) {
             console.warn('[WebBT] Cannot program workout: Not connected');
             return;
@@ -259,7 +265,9 @@ class WebBluetoothService implements BluetoothService {
             let workoutType = 0;
             if (workout.type === 'fixed_time') workoutType = C.WorkoutType.FixedTimeSplits; // 5
             else if (workout.type === 'fixed_distance') workoutType = C.WorkoutType.FixedDistSplits; // 3
-            else workoutType = C.WorkoutType.JustRowSplits; // 1
+            else if (workout.type === 'interval_distance') workoutType = C.WorkoutType.FixedDistInterval; // 7
+            else if (workout.type === 'interval_time') workoutType = C.WorkoutType.FixedTimeInterval; // 6
+            else workoutType = 1; // JustRowSplits
 
             pushPayload8(workoutType);
 
@@ -273,10 +281,16 @@ class WebBluetoothService implements BluetoothService {
                 const timeCentiseconds = Math.round(workout.value * 100);
                 pushPayload32(timeCentiseconds);
 
-            } else if (workout.type === 'fixed_distance') {
+                pushPayload32(timeCentiseconds);
+
+            } else if (workout.type === 'fixed_distance' || workout.type === 'interval_distance') {
                 pushPayload8(C.WorkoutDurationType.Distance); // 0x80
                 // Value is in meters
                 pushPayload32(Math.round(workout.value));
+            } else if (workout.type === 'interval_time') {
+                pushPayload8(C.WorkoutDurationType.Time); // 0x00
+                const timeCentiseconds = Math.round(workout.value * 100);
+                pushPayload32(timeCentiseconds);
             }
 
             // --- Command 3: CSAFE_PM_SET_SPLITDURATION (0x05) --- 

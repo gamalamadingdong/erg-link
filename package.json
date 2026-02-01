@@ -24,6 +24,7 @@
     "@capacitor/ios": "^7.4.5",
     "@capacitor/preferences": "^7.0.0",
     "@supabase/supabase-js": "^2.45.0",
+    "idb": "^8.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zustand": "^5.0.0"

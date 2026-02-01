@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import { useAppStore } from './store/appStore';
 import { bluetoothService } from './services/bluetooth';
+import { strokeBuffer } from './services/strokeBuffer';
 import { NameEntryForm } from './components/NameEntryForm';
 import { IOSDownloadPrompt } from './components/IOSDownloadPrompt';
 import { shouldShowAppDownloadPrompt } from './utils/platformDetection';
@@ -85,25 +86,56 @@ function App() {
             const workoutConfig = newWorkout as any;
             if (workoutConfig.start_type === 'synchronized') {
               // Check race_state from session
-              // We might need to cast session as it might be untyped in some contexts or missing fields if specific select wasn't used?
-              // But subscribe returns the row.
               const raceState = (session as any).race_state;
               if (raceState !== undefined) {
                 console.log('[App] Syncing race state:', raceState);
+
                 // Update Store
                 setRaceState(raceState);
-                // 8 = WaitToStart, 9 = Start, 10 = FalseStart, 11 = Terminate
+
+                // trigger PM5 command
                 bluetoothService.setRaceState(raceState).catch(e => console.error('[App] Failed to set race state', e));
+
+                // TERMINATE / FINISH (11) -> Upload Data
+                if (raceState === 11) {
+                  console.log('[App] Race Terminated. Uploading local buffer...');
+                  const state = useAppStore.getState();
+                  if (state.sessionId && state.participantId) {
+                    strokeBuffer.export(state.sessionId).then(async (blob) => {
+                      const strokes = JSON.parse(await blob.text());
+                      if (strokes.length === 0) {
+                        console.warn('[App] No strokes to upload.');
+                        return;
+                      }
+                      import('./services/sessionService').then(({ sessionService }) => {
+                        sessionService.uploadWorkoutLog(state.sessionId!, state.participantId!, strokes)
+                          .then(() => {
+                            console.log('[App] Upload successful!');
+                            strokeBuffer.clearSession(state.sessionId!);
+                            // Maybe show success toast?
+                          })
+                          .catch(err => console.error('[App] Upload failed:', err));
+                      });
+                    });
+                  }
+                }
               }
             }
           }
         });
         unsubscribe = sub.unsubscribe;
 
+        // Detect session end to trigger upload? 
+        // Or do we wait for explicit "Finish" signal?
+        // Currently we don't have an explicit "Finish" race state handled here other than Terminate(11).
+
       }).catch(err => console.error('[App] Failed to load sessionService:', err));
 
       return () => {
         if (unsubscribe) unsubscribe();
+        // On unmount (leaving session), try to upload buffered data logic would go here
+        // But unmount might be refresh, so be careful.
+        // Better handled by explicit "End Session" action or automatic race state "Terminate"
       };
     }
   }, [sessionId]); // Re-run if session ID changes
@@ -137,6 +169,11 @@ function App() {
 
       bluetoothService.onData((data) => {
         updateCurrentData(data);
+
+        // Buffer stroke locally (Hybrid Strategy)
+        // We use the current sessionId if available, otherwise 'pending'
+        const currentSessionId = useAppStore.getState().sessionId;
+        strokeBuffer.append(data, currentSessionId || undefined).catch(e => console.error('Buffer failed', e));
 
         // Sync to Supabase if in session (throttled)
         const state = useAppStore.getState();

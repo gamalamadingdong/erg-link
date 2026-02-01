@@ -44,7 +44,13 @@ export interface BluetoothService {
     getConnectedDevice(): PM5Device | null;
 
     // Commands
-    programWorkout(workout: { type: 'fixed_distance' | 'fixed_time', value: number, split?: number }): Promise<void>;
+    programWorkout(workout: {
+        type: 'fixed_distance' | 'fixed_time' | 'interval_distance' | 'interval_time',
+        value: number,
+        split?: number,
+        rest?: number,
+        repeats?: number
+    }): Promise<void>;
     setRaceState(state: number): Promise<void>;
 }
 
