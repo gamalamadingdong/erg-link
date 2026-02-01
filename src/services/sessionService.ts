@@ -120,8 +120,22 @@ export const sessionService = {
                 }
             });
 
+        // Polling Fallback (Robustness for Race State)
+        const pollInterval = setInterval(async () => {
+            const { data } = await (supabase as any)
+                .from('erg_sessions')
+                .select('*')
+                .eq('id', sessionId)
+                .single();
+
+            if (data) {
+                onSessionUpdate(data as Session);
+            }
+        }, 2000); // Poll every 2 seconds
+
         return {
             unsubscribe: () => {
+                clearInterval(pollInterval);
                 if (supabase) {
                     supabase.removeChannel(channel);
                 }
