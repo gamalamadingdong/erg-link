@@ -225,11 +225,16 @@ class WebBluetoothService implements BluetoothService {
     }
 
     async programWorkout(workout: {
-        type: 'fixed_distance' | 'fixed_time' | 'interval_distance' | 'interval_time',
-        value: number,
+        type: 'fixed_distance' | 'fixed_time' | 'interval_distance' | 'interval_time' | 'variable_interval',
+        value?: number,
         split?: number,
         rest?: number,
-        repeats?: number
+        repeats?: number,
+        intervals?: Array<{
+            type: 'distance' | 'time' | 'rest';
+            value: number;
+            rest?: number;
+        }>
     }): Promise<void> {
         if (!this.server || !this.connected) {
             console.warn('[WebBT] Cannot program workout: Not connected');
@@ -241,26 +246,123 @@ class WebBluetoothService implements BluetoothService {
         // Import constants locally to avoid top-level dependency issues
         const C = await import('../constants/csafe');
 
-        let commandBytes: number[] = [];
+        // Helper to send a frame
+        const sendFrame = async (commandBytes: number[]) => {
+            console.log('[WebBT] Sending Proprietary C2 Frame:', new Uint8Array(commandBytes));
+            const controlService = await this.server!.getPrimaryService(PM5_SERVICES.PM_CONTROL);
+            const rxChar = await controlService.getCharacteristic(PM5_CHARACTERISTICS.CSAFE_RX);
+            await rxChar.writeValue(new Uint8Array(commandBytes));
+        };
 
-        // ---------------------------------------------------------
-        // Construct C2 Proprietary Command Frame
-        // ---------------------------------------------------------
-        // We will build the *content* of the 0x76 wrapper first, then wrap it.
+        // Helper to wrap payload in 0x76 frame
+        const wrapAndSend = async (payload: number[]) => {
+            const commandBytes: number[] = [];
+            commandBytes.push(C.CSAFE_FRAME_START);
+            commandBytes.push(C.CSAFE_SETPMCFG_CMD);
+            commandBytes.push(payload.length);
+            payload.forEach(b => commandBytes.push(b));
+            let checksum = 0;
+            for (let i = 1; i < commandBytes.length; i++) {
+                checksum = checksum ^ commandBytes[i];
+            }
+            commandBytes.push(checksum);
+            commandBytes.push(C.CSAFE_FRAME_STOP);
+            await sendFrame(commandBytes);
+        };
 
-        const payload: number[] = [];
-        const pushPayload8 = (val: number) => payload.push(val & 0xFF);
-        const pushPayload32 = (val: number) => {
-            payload.push((val >> 24) & 0xFF);
-            payload.push((val >> 16) & 0xFF);
-            payload.push((val >> 8) & 0xFF);
-            payload.push(val & 0xFF);
+        const pushPayload8 = (arr: number[], val: number) => arr.push(val & 0xFF);
+        const pushPayload32 = (arr: number[], val: number) => {
+            arr.push((val >> 24) & 0xFF);
+            arr.push((val >> 16) & 0xFF);
+            arr.push((val >> 8) & 0xFF);
+            arr.push(val & 0xFF);
         };
 
         try {
+            // --- VARIABLE INTERVAL LOGIC (CHUNKING) ---
+            if (workout.type === 'variable_interval' && workout.intervals) {
+                console.log('[WebBT] Programming Variable Interval Workout (Chunked)...');
+
+                for (let i = 0; i < workout.intervals.length; i++) {
+                    const interval = workout.intervals[i];
+                    const isLast = i === workout.intervals.length - 1;
+                    const payload: number[] = [];
+
+                    // 1. Set Workout Type (Variable Interval = 8)
+                    pushPayload8(payload, C.CSAFE_PM_SET_WORKOUTTYPE);
+                    pushPayload8(payload, 0x01);
+                    pushPayload8(payload, C.WorkoutType.VariableInterval);
+
+                    // 2. Set Interval Type (0=Time, 1=Dist)
+                    // Note: C2 spec implies this is how we distinguish types per interval in variable mode
+                    // Although standard commands use SET_WORKOUTDURATION with specific units.
+                    // For Variable Intervals, we essentially act like we are programming a *single* interval
+                    // of that type, then the NEXT frame programs the NEXT one.
+
+                    // Actually, per standard CSAFE for variable intervals, we just use Standard SetDuration.
+
+                    // Command: CSAFE_PM_SET_WORKOUTDURATION (0x03)
+                    pushPayload8(payload, C.CSAFE_PM_SET_WORKOUTDURATION);
+                    pushPayload8(payload, 0x05); // 1 type + 4 val
+
+                    if (interval.type === 'time') {
+                        pushPayload8(payload, C.WorkoutDurationType.Time);
+                        const val = Math.round(interval.value * 100); // centiseconds
+                        pushPayload32(payload, val);
+                    } else {
+                        pushPayload8(payload, C.WorkoutDurationType.Distance);
+                        const val = Math.round(interval.value); // meters
+                        pushPayload32(payload, val);
+                    }
+
+                    // Command: CSAFE_PM_SET_SPLITDURATION (0x05) - Optional?
+                    // Let's copy the duration as the split for now to be safe, or default 500m/5min
+                    // Actually, for variable intervals, splits might be weird. Let's skip explicitly setting splits per interval
+                    // unless we want sub-splits. For simplicity, let's assume no sub-splits for now.
+
+                    // Command: CSAFE_PM_SET_RESTDURATION (0x04)
+                    if (interval.rest !== undefined) {
+                        pushPayload8(payload, C.CSAFE_PM_SET_RESTDURATION);
+                        pushPayload8(payload, 0x02); // 2 bytes for time in seconds? Or Standard CSAFE is usually different.
+                        // Wait, spec says SetRestDuration (0x04) takes 2 bytes (word) in Seconds? 
+                        // Checked C2 Spec: 0x04 + 0x02 + [Word]. Value is in seconds.
+                        const restSec = Math.round(interval.rest);
+                        pushPayload8(payload, (restSec >> 8) & 0xFF);
+                        pushPayload8(payload, restSec & 0xFF);
+                    }
+
+                    // FINAL CHUNK ONLY: Configure & Screen State
+                    if (isLast) {
+                        // CSAFE_PM_CONFIGURE_WORKOUT (0x14)
+                        pushPayload8(payload, C.CSAFE_PM_CONFIGURE_WORKOUT);
+                        pushPayload8(payload, 0x01);
+                        pushPayload8(payload, 0x01);
+
+                        // CSAFE_PM_SET_SCREENSTATE (0x13)
+                        pushPayload8(payload, C.CSAFE_PM_SET_SCREENSTATE);
+                        pushPayload8(payload, 0x02);
+                        pushPayload8(payload, C.ScreenType.Workout);
+                        pushPayload8(payload, C.ScreenValue.PrepareToRow);
+                    }
+
+                    // Send the Chunk
+                    console.log(`[WebBT] Sending Interval Chunk ${i + 1}/${workout.intervals.length}`);
+                    await wrapAndSend(payload);
+
+                    // Short delay to ensure processing?
+                    await new Promise(r => setTimeout(r, 50));
+                }
+
+                console.log('[WebBT] Variable Interval Workout Programmed Successfully');
+                return;
+            }
+
+            // --- STANDARD/LEGACY LOGIC (Fixed Types) ---
+            const payload: number[] = [];
+
             // --- Command 1: CSAFE_PM_SET_WORKOUTTYPE (0x01) ---
-            pushPayload8(C.CSAFE_PM_SET_WORKOUTTYPE);
-            pushPayload8(0x01); // Byte count
+            pushPayload8(payload, C.CSAFE_PM_SET_WORKOUTTYPE);
+            pushPayload8(payload, 0x01); // Byte count
 
             let workoutType = 0;
             if (workout.type === 'fixed_time') workoutType = C.WorkoutType.FixedTimeSplits; // 5
@@ -269,87 +371,57 @@ class WebBluetoothService implements BluetoothService {
             else if (workout.type === 'interval_time') workoutType = C.WorkoutType.FixedTimeInterval; // 6
             else workoutType = 1; // JustRowSplits
 
-            pushPayload8(workoutType);
+            pushPayload8(payload, workoutType);
 
             // --- Command 2: CSAFE_PM_SET_WORKOUTDURATION (0x03) ---
-            pushPayload8(C.CSAFE_PM_SET_WORKOUTDURATION);
-            pushPayload8(0x05); // Byte count: 1 (type) + 4 (value)
+            pushPayload8(payload, C.CSAFE_PM_SET_WORKOUTDURATION);
+            pushPayload8(payload, 0x05); // Byte count: 1 (type) + 4 (value)
 
             if (workout.type === 'fixed_time') {
-                pushPayload8(C.WorkoutDurationType.Time); // 0x00
+                pushPayload8(payload, C.WorkoutDurationType.Time); // 0x00
                 // Value is in 0.01 seconds for Time
-                const timeCentiseconds = Math.round(workout.value * 100);
-                pushPayload32(timeCentiseconds);
-
-                pushPayload32(timeCentiseconds);
+                const timeCentiseconds = Math.round((workout.value || 0) * 100);
+                pushPayload32(payload, timeCentiseconds);
 
             } else if (workout.type === 'fixed_distance' || workout.type === 'interval_distance') {
-                pushPayload8(C.WorkoutDurationType.Distance); // 0x80
+                pushPayload8(payload, C.WorkoutDurationType.Distance); // 0x80
                 // Value is in meters
-                pushPayload32(Math.round(workout.value));
+                pushPayload32(payload, Math.round(workout.value || 0));
             } else if (workout.type === 'interval_time') {
-                pushPayload8(C.WorkoutDurationType.Time); // 0x00
-                const timeCentiseconds = Math.round(workout.value * 100);
-                pushPayload32(timeCentiseconds);
+                pushPayload8(payload, C.WorkoutDurationType.Time); // 0x00
+                const timeCentiseconds = Math.round((workout.value || 0) * 100);
+                pushPayload32(payload, timeCentiseconds);
             }
 
             // --- Command 3: CSAFE_PM_SET_SPLITDURATION (0x05) --- 
             if (workout.type === 'fixed_time') {
-                pushPayload8(C.CSAFE_PM_SET_SPLITDURATION);
-                pushPayload8(0x05); // Count
-                pushPayload8(C.WorkoutDurationType.Time);
+                pushPayload8(payload, C.CSAFE_PM_SET_SPLITDURATION);
+                pushPayload8(payload, 0x05); // Count
+                pushPayload8(payload, C.WorkoutDurationType.Time);
                 // Default 5 mins (300s) = 30000 cs if not provided
                 const split = (workout.split || 300) * 100;
-                pushPayload32(split);
+                pushPayload32(payload, split);
             } else if (workout.type === 'fixed_distance') {
-                pushPayload8(C.CSAFE_PM_SET_SPLITDURATION);
-                pushPayload8(0x05); // Count
-                pushPayload8(C.WorkoutDurationType.Distance);
+                pushPayload8(payload, C.CSAFE_PM_SET_SPLITDURATION);
+                pushPayload8(payload, 0x05); // Count
+                pushPayload8(payload, C.WorkoutDurationType.Distance);
                 // Default 500m
                 const split = workout.split || 500;
-                pushPayload32(split);
+                pushPayload32(payload, split);
             }
 
             // --- Command 4: CSAFE_PM_CONFIGURE_WORKOUT (0x14) ---
-            pushPayload8(C.CSAFE_PM_CONFIGURE_WORKOUT);
-            pushPayload8(0x01);
-            pushPayload8(0x01); // Enable Program Mode
+            pushPayload8(payload, C.CSAFE_PM_CONFIGURE_WORKOUT);
+            pushPayload8(payload, 0x01);
+            pushPayload8(payload, 0x01); // Enable Program Mode
 
             // --- Command 5: CSAFE_PM_SET_SCREENSTATE (0x13) ---
-            pushPayload8(C.CSAFE_PM_SET_SCREENSTATE);
-            pushPayload8(0x02); // Byte count
-            pushPayload8(C.ScreenType.Workout); // 1
-            pushPayload8(C.ScreenValue.PrepareToRow); // 1
+            pushPayload8(payload, C.CSAFE_PM_SET_SCREENSTATE);
+            pushPayload8(payload, 0x02); // Byte count
+            pushPayload8(payload, C.ScreenType.Workout); // 1
+            pushPayload8(payload, C.ScreenValue.PrepareToRow); // 1
 
-
-            // ---------------------------------------------------------
-            // Wrap in 0x76 (CSAFE_SETPMCFG_CMD)
-            // ---------------------------------------------------------
-            // Frame: [F1, 76, Count, ...payload..., Checksum, F2]
-
-            commandBytes.push(C.CSAFE_FRAME_START);
-            commandBytes.push(C.CSAFE_SETPMCFG_CMD);
-            commandBytes.push(payload.length); // Count of the payload bytes
-
-            // Add payload
-            payload.forEach(b => commandBytes.push(b));
-
-            // Calculate Checksum (XOR of everything between Start and Checksum)
-            let checksum = 0;
-            // Iterate from Index 1 (Command) to the last payload byte
-            for (let i = 1; i < commandBytes.length; i++) {
-                checksum = checksum ^ commandBytes[i];
-            }
-            commandBytes.push(checksum);
-            commandBytes.push(C.CSAFE_FRAME_STOP);
-
-            console.log('[WebBT] Sending Proprietary C2 Frame:', new Uint8Array(commandBytes));
-
-            // Send to Rx Characteristic
-            const controlService = await this.server.getPrimaryService(PM5_SERVICES.PM_CONTROL);
-            const rxChar = await controlService.getCharacteristic(PM5_CHARACTERISTICS.CSAFE_RX);
-
-            await rxChar.writeValue(new Uint8Array(commandBytes));
+            await wrapAndSend(payload);
             console.log('[WebBT] PM5 Programmed Successfully');
 
         } catch (e) {

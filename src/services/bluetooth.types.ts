@@ -45,11 +45,16 @@ export interface BluetoothService {
 
     // Commands
     programWorkout(workout: {
-        type: 'fixed_distance' | 'fixed_time' | 'interval_distance' | 'interval_time',
-        value: number,
+        type: 'fixed_distance' | 'fixed_time' | 'interval_distance' | 'interval_time' | 'variable_interval',
+        value?: number,
         split?: number,
         rest?: number,
-        repeats?: number
+        repeats?: number,
+        intervals?: Array<{
+            type: 'distance' | 'time' | 'rest';
+            value: number;
+            rest?: number;
+        }>
     }): Promise<void>;
     setRaceState(state: number): Promise<void>;
 }
