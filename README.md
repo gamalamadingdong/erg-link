@@ -19,6 +19,8 @@ erg-link acts as a bridge between:
 
 ## Use Cases
 
+> **⚠️ Note:** Real-time synchronization and group workout features are currently under active development.
+
 - Live session monitoring for coaches
 - Real-time workout data for training apps
 - Group workout synchronization
