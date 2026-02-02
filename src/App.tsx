@@ -440,7 +440,10 @@ function App() {
 
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 p-3 text-center text-gray-600 text-xs safe-area-bottom border-t border-gray-700">
-        Erg-Link • LogbookCompanion
+        <div>© 2024 Sam Gammon</div>
+        <a href="/LICENSE" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-500 transition-colors">
+          MIT Licensed
+        </a>
       </footer>
     </div>
   );

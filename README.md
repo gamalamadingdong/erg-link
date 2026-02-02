@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# erg-link
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**erg-link** is a Bluetooth Low Energy (BLE) bridge for Concept2 rowing machines, enabling real-time workout data streaming to web applications.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **PM5 BLE Integration**: Connects to Concept2 PM5 monitors via Bluetooth
+- **Real-time Data Streaming**: Live workout metrics (distance, pace, heart rate, power)
+- **CSAFE Protocol Support**: Implements Concept2's CSAFE-over-BLE specification
+- **Cross-Platform**: Built with Capacitor for iOS and Android
+- **WebSocket Bridge**: Streams data to web apps for analysis and logging
 
-## React Compiler
+## Architecture
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+erg-link acts as a bridge between:
+1. **Concept2 PM5** (via BLE) → Workout data
+2. **Mobile App** (iOS/Android) → Data processing
+3. **Web App** (via WebSocket) → Analytics & storage
 
-## Expanding the ESLint configuration
+## Use Cases
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Live session monitoring for coaches
+- Real-time workout data for training apps
+- Group workout synchronization
+- Custom analytics dashboards
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Prerequisites
+- Node.js 18+
+- iOS/Android development environment (Xcode/Android Studio)
+- Concept2 rowing machine with PM5 monitor
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Installation
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# Run web version
+npm run dev
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Build for iOS
+npx cap sync ios
+npx cap open ios
+
+# Build for Android
+npx cap sync android
+npx cap open android
 ```
+
+## Related Projects
+
+- **[logbook-companion](https://github.com/gamalamadingdong/logbook-companion)** - Web app for rowing analytics and training plans
+
+## CSAFE Specification
+
+See `csafe-spec/` for the Concept2 CSAFE-over-BLE protocol documentation.
+
+## License
+
+MIT License - see [LICENSE](./LICENSE) for details.
+
+## Author
+
+© 2024 Sam Gammon
