@@ -1,38 +1,28 @@
 # Active Context
 
-**Last Updated**: 2026-01-29
-**Status**: Decision Confirmed
+**Last Updated**: 2026-02-01
+**Status**: Execution & Verification
 
 ---
 
-## Confirmed Decision
+## Current Focus
+Implementing and verifying **Live Racing** and **Interval Workout** support.
 
-**Build a Native App (Capacitor) for PM5 connectivity.**
-
-### Core Principles
-1. **Lightweight**: Download → Connect → Row. Done.
-2. **No Accounts**: Guest mode by default. Zero signup friction.
-3. **Data Capture First**: Log every row, racing or training.
-4. **Racing as Feature**: Compelling use case, not the core.
-
-### Technology Stack
-- **Frontend**: React + Vite + TypeScript
-- **Native Wrapper**: Capacitor (iOS + Android)
-- **Bluetooth**: `@capacitor-community/bluetooth-le`
-- **Backend**: Supabase (Realtime + PostgreSQL)
-- **Pattern**: Matches `scheduleboardv2` architecture
-
----
+## Recent Progress
+- [x] **Interval Support**: Implemented CSAFE commands (`CSAFE_PM_SET_WORKOUTTYPE`, `CSAFE_PM_CONFIGURE_WORKOUT`) to program intervals (Distance/Time) via Bluetooth.
+- [x] **Local Data Buffering (Hybrid Strategy)**:
+    - Created `StrokeBuffer` service (IndexedDB) to save every stroke locally.
+    - Implementing auto-upload logic on session termination to `workout_logs`.
+    - Calculated Supabase Realtime costs (Negligible for target team size).
+- [x] **Testing**: Created `simulate_bots.ts` to simulate multiple rowers joining a session and responding to race states.
 
 ## Next Steps
-
-1. Initialize React + Vite + Capacitor scaffold
-2. Bluetooth POC: Scan for PM5, connect, read one value
-3. Basic UI: "Connect" button → Status indicator
+1. **Hardware Verification**: Test functionality with physical PM5 and mobile device.
+2. **Offline Resilience**: Enhance the upload queue to handle cases where network is lost at race finish.
+3. **UI Polish**: Refine the "Live Session" participant view for rowers.
 
 ---
 
-## Research Completed
-- [x] UX Trade-off Analysis (`analysis/bridge_tradeoffs.md`)
-- [x] UX Journey Maps (`analysis/ux_journeys.md`)
-- [x] Competitor: RowHero (`analysis/competitors_rowhero.md`)
+## Technical Decisions
+- **Hybrid Data Flow**: Realtime messages for ephemeral race/coach view (throttled). Full log uploaded from local buffer for historical record.
+- **Supabase**: Using `erg_sessions` for state and `erg_session_participants` for live data. `workout_logs` for final storage.
