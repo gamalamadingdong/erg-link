@@ -66,4 +66,4 @@ MIT License - see [LICENSE](./LICENSE) for details.
 
 ## Author
 
-© 2024 Sam Gammon
+© 2026 Sam Gammon
