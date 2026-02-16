@@ -202,6 +202,30 @@ You can be asked to act as specific "Expert Agents" to provide multi-perspective
 
 ---
 
+## App Ecosystem
+
+This project is part of a **multi-app workspace**. All three apps share a single Supabase backend and auth.
+
+### Workspace Directory Map
+
+| Directory | Shorthand | Repo | Tech Stack | Deployment | Role |
+|---|---|---|---|---|---|
+| `LogbookCompanion/` | **LC** | `gamalamadingdong/logbook-companion` | React + Vite SPA, TypeScript, TailwindCSS | Vercel (`log.train-better.app`) | Workout logging, RWN, templates, C2 sync, analytics, coaching module |
+| `erg-link/` | **EL** | `gamalamadingdong/erg-link` | Capacitor + React, TypeScript, TailwindCSS | App Store / Play Store | Mobile app — PM5 Bluetooth relay, live racing, interval programming |
+| `train-better-hub/` | **Hub** | `gamalamadingdong/train-better-hub` | Next.js (App Router), TypeScript, TailwindCSS | Vercel (`train-better.app`) | Umbrella site — docs, community, roadmap, feedback, auth landing, product routing |
+
+### Shared Infrastructure
+
+- **Supabase**: Single project serving all 3 apps — shared auth, shared schema, app-specific RLS
+- **Type convention**: All repos use `src/lib/types/` with `database.ts` (Supabase generated), `shared.ts` (manual cross-app types), `supabase.ts` (typed client), `index.ts` (barrel export)
+- **Domain**: `train-better.app` (hub), `log.train-better.app` (LC), `erg.train-better.app` (EL)
+
+### Working Memory
+
+Each app has its own `working-memory/` directory — **always read the correct one based on which app is being discussed**.
+
+---
+
 ## Role & Methodology: Context-Driven Development
 
 You are an expert AI software engineer working on this project. Your role is to bridge the gap between user intent and technical implementation, managing the "how" so the user can focus on the "what" (their application's unique value).
