@@ -40,6 +40,7 @@ export interface Database {
                     active_workout?: Json | null
                     race_state?: number
                 }
+                Relationships: []
             }
             erg_session_participants: {
                 Row: {
@@ -75,6 +76,7 @@ export interface Database {
                     created_at?: string | null
                     group_name?: string | null
                 }
+                Relationships: []
             }
             workout_logs: {
                 Row: {
@@ -167,7 +169,20 @@ export interface Database {
                     manual_rwn?: string | null
                     rest_distance_meters?: number | null
                 }
+                Relationships: []
             }
+        }
+        Views: {
+            [_ in never]: never
+        }
+        Functions: {
+            [_ in never]: never
+        }
+        Enums: {
+            [_ in never]: never
+        }
+        CompositeTypes: {
+            [_ in never]: never
         }
     }
 }

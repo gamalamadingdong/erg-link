@@ -27,6 +27,12 @@ const ALL_PM5_SERVICES = [
     PM5_SERVICES.HEART_RATE,
 ];
 
+const toWriteBuffer = (frame: Uint8Array): ArrayBuffer => {
+    const cloned = new Uint8Array(frame.byteLength);
+    cloned.set(frame);
+    return cloned.buffer;
+};
+
 class WebBluetoothService implements BluetoothService {
     private device: BluetoothDevice | null = null;
     private server: BluetoothRemoteGATTServer | null = null;
@@ -244,7 +250,7 @@ class WebBluetoothService implements BluetoothService {
             for (let i = 0; i < frames.length; i++) {
                 const frame = frames[i];
                 console.log(`[WebBT] Sending frame ${i + 1}/${frames.length}:`, frame);
-                await rxChar.writeValue(frame);
+                await rxChar.writeValue(toWriteBuffer(frame));
 
                 // Short delay between chunked frames to allow PM5 processing
                 if (frames.length > 1 && i < frames.length - 1) {
@@ -273,7 +279,7 @@ class WebBluetoothService implements BluetoothService {
 
             const frame = buildRaceStateFrame(state);
             console.log('[WebBT] Sending Race Control Frame:', frame);
-            await rxChar.writeValue(frame);
+            await rxChar.writeValue(toWriteBuffer(frame));
 
             console.log('[WebBT] Race State Set Successfully');
         } catch (e) {

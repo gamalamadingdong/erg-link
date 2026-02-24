@@ -4,6 +4,18 @@ import type { PM5Data } from './bluetooth.types';
 
 type Session = Database['public']['Tables']['erg_sessions']['Row'];
 type Participant = Database['public']['Tables']['erg_session_participants']['Row'];
+type Json = Database['public']['Tables']['workout_logs']['Row']['raw_data'];
+
+const serializeStrokeData = (strokeData: PM5Data[]) => strokeData.map((stroke) => ({
+    timestamp: stroke.timestamp,
+    distance: stroke.distance,
+    pace: stroke.pace,
+    strokeRate: stroke.strokeRate,
+    watts: stroke.watts,
+    heartRate: stroke.heartRate,
+    calories: stroke.calories,
+    elapsedTime: stroke.elapsedTime,
+}));
 
 export const sessionService = {
     /**
@@ -164,6 +176,13 @@ export const sessionService = {
 
         if (user) {
             // Authenticated user → insert into workout_logs
+            const rawData = {
+                strokes: serializeStrokeData(strokeData),
+                source: 'erg_link_live',
+                session_id: sessionId,
+                participant_id: participantId,
+            } as Json;
+
             const logEntry: Database['public']['Tables']['workout_logs']['Insert'] = {
                 user_id: user.id,
                 workout_name: 'Live Session Workout',
@@ -174,12 +193,7 @@ export const sessionService = {
                 average_stroke_rate: lastStroke.strokeRate || null,
                 watts: lastStroke.watts || null,
                 source: 'erg_link_live',
-                raw_data: {
-                    strokes: strokeData,
-                    source: 'live_session',
-                    session_id: sessionId,
-                    participant_id: participantId,
-                },
+                raw_data: rawData,
             };
 
             const { error: logError } = await supabase
