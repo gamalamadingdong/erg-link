@@ -250,6 +250,54 @@ Use Tailwind CSS with shadcn/ui components instead of component libraries like M
 
 ---
 
+## ADR-007: ErgLink ↔ LogbookCompanion Integration Contract
+
+**Date**: June 2025
+**Status**: Accepted
+**Author**: Sam Gammon + AI
+**Cross-ref**: LogbookCompanion ADR-017
+
+### Context
+ErgLink (EL) and LogbookCompanion (LC) share a single Supabase backend. Coaches create live erg sessions in LC and athletes join from EL. However, the data path between the two apps had 6 critical gaps:
+
+1. **No shared workout identity** — EL uploads with generic name `'Live Session Workout'`, no `canonical_name` or `template_id`, so LC can't match to templates or assignments.
+2. **No assignment linkage** — LC creates `group_assignments`, but EL has no visibility into them and doesn't tag uploads with `group_assignment_id`.
+3. **`erg_sessions.active_workout` untyped** — The JSONB column was used by both apps with divergent local interfaces and `as any` casts.
+4. **Reconciliation blind spot** — ADR-015 (LC) defines Gold/Silver/Bronze priority but EL wasn't populating the fields needed for matching.
+5. **EL data invisible to coaching views** — no LC queries filter for `source = 'erg_link_live'`.
+6. **No C2 Logbook upload from EL** (future).
+
+### Decision
+Define a **typed integration contract** in `src/types/ergSession.types.ts` (canonical in LC, mirrored in EL) covering:
+
+1. **`ActiveWorkoutSpec`** — the shape LC writes to `erg_sessions.active_workout` and EL reads. Includes PM5 programming fields AND metadata fields (`canonical_name`, `template_id`, `group_assignment_id`). Versioned with `_v: 1`.
+2. **`ErgLinkUploadMeta`** — the shape EL writes to `workout_logs.raw_data`. Includes `session_id`, `participant_id`, echoed metadata, and full stroke buffer.
+3. **`SOURCE_PRIORITY`** + **`ReconciliationMatch`** — dedup/upgrade rules.
+4. **Column-level contract** — documents which `workout_logs` columns EL must populate.
+
+### Rationale
+- Typed contracts eliminate `as any` casts and prevent integration bugs
+- Metadata passthrough (EL echoes `canonical_name`/`template_id`/`group_assignment_id`) enables LC to auto-match templates and complete assignments
+- Manual sync between repos is acceptable for ~200 lines of types across 2 consumers
+
+### Consequences
+**Positive**:
+- Type-safe reads/writes for `erg_sessions.active_workout` (no more `as any`)
+- Uploads become matchable by LC coaching views
+- Clear ownership of which columns each app sets
+
+**Negative**:
+- Manual sync required when contract changes
+- EL needs code changes: `sessionService.ts` upload enrichment, `appStore.ts` type update, `ActiveWorkoutSpec` → `WorkoutConfig` converter
+
+### Implementation Notes
+- Contract file: `erg-link/src/types/ergSession.types.ts` (mirror of LC canonical)
+- EL's internal `WorkoutConfig` (in `commands.ts`) stays — it's PM5-specific. A conversion function maps `ActiveWorkoutSpec` → `WorkoutConfig`.
+- `sessionService.ts` `uploadWorkoutLog()` must read metadata from active workout spec and populate `canonical_name`, `template_id`, `group_assignment_id` on `workout_logs` insert.
+- `appStore.ts` `activeWorkout` type should be `ActiveWorkoutSpec | null`.
+
+---
+
 ## Template for Future ADRs
 
 ```markdown

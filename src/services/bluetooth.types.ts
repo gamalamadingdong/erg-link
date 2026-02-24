@@ -59,11 +59,6 @@ export interface BluetoothService {
     setRaceState(state: number): Promise<void>;
 }
 
-// PM5 Bluetooth UUIDs (Concept2 specific)
-export const PM5_SERVICE_UUID = 'ce060000-43e5-11e4-916c-0800200c9a66';
-export const PM5_ROWING_STATUS_UUID = 'ce060031-43e5-11e4-916c-0800200c9a66';
-export const PM5_EXTRA_STATUS_UUID = 'ce060032-43e5-11e4-916c-0800200c9a66';
-
 // Connection states
 export type ConnectionState =
     | 'disconnected'

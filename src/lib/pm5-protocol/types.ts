@@ -292,21 +292,4 @@ export function getUint32LE(view: DataView, offset: number): number {
         (view.getUint8(offset + 3) << 24);
 }
 
-// ============================================================================
-// CSAFE COMMANDS
-// ============================================================================
 
-export const CSAFE_COMMANDS = {
-    SET_HORIZONTAL_DISTANCE: 0x21,
-    SET_TWORK_TIME: 0x20, // Set time duration
-    SET_USER_CFG1: 0x1A, // Wrapper
-    SET_PROGRAM: 0x24,
-    GO_IN_USE: 0x85, // Short command
-    RESET: 0x82,     // Short command
-} as const;
-
-export const CSAFE_FRAME = {
-    START_FLAG: 0xF1,
-    STOP_FLAG: 0xF2,
-    STUFFING_FLAG: 0xF3,
-} as const;

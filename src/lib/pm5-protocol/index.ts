@@ -30,7 +30,6 @@ export {
     type AdditionalStatus1Data,
     type AdditionalStatus2Data,
     type PM5AggregatedData,
-    CSAFE_COMMANDS,
 } from './types';
 
 // Export parsers
@@ -41,4 +40,5 @@ export {
     PM5DataAggregator,
 } from './parser';
 
-export { buildCSAFEFrame } from './commands';
+export { buildCSAFEFrame, buildProprietaryFrame, buildWorkoutFrames, buildRaceStateFrame } from './commands';
+export type { WorkoutConfig } from './commands';

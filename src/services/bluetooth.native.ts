@@ -11,6 +11,9 @@ import {
     PM5_SERVICES,
     PM5_CHARACTERISTICS,
     PM5DataAggregator,
+    buildWorkoutFrames,
+    buildRaceStateFrame,
+    type WorkoutConfig,
 } from '../lib/pm5-protocol';
 
 export class NativeBluetoothService implements BluetoothService {
@@ -242,12 +245,69 @@ export class NativeBluetoothService implements BluetoothService {
         };
     }
 
-    async programWorkout(workout: { type: 'fixed_distance' | 'fixed_time', value: number, split?: number }): Promise<void> {
-        console.log('[NativeBluetooth] Program workout not implemented yet:', workout);
+    async programWorkout(workout: WorkoutConfig): Promise<void> {
+        if (!this.connectedDevice) {
+            console.warn('[NativeBluetooth] Cannot program workout: Not connected');
+            return;
+        }
+
+        const deviceId = this.connectedDevice.deviceId;
+        console.log('[NativeBluetooth] Programming workout:', workout);
+
+        try {
+            const frames = buildWorkoutFrames(workout);
+
+            for (let i = 0; i < frames.length; i++) {
+                const frame = frames[i];
+                console.log(`[NativeBluetooth] Sending frame ${i + 1}/${frames.length}:`, frame);
+
+                // Capacitor BLE expects a DataView
+                const dataView = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
+                await BleClient.write(
+                    deviceId,
+                    PM5_SERVICES.PM_CONTROL,
+                    PM5_CHARACTERISTICS.CSAFE_RX,
+                    dataView
+                );
+
+                // Short delay between chunked frames to allow PM5 processing
+                if (frames.length > 1 && i < frames.length - 1) {
+                    await new Promise(r => setTimeout(r, 50));
+                }
+            }
+
+            console.log('[NativeBluetooth] Workout programmed successfully');
+        } catch (e) {
+            console.error('[NativeBluetooth] Failed to program workout:', e);
+            throw e;
+        }
     }
 
     async setRaceState(state: number): Promise<void> {
-        console.log('[NativeBluetooth] Set race state not implemented yet:', state);
+        if (!this.connectedDevice) {
+            console.warn('[NativeBluetooth] Cannot set race state: Not connected');
+            return;
+        }
+
+        const deviceId = this.connectedDevice.deviceId;
+        console.log('[NativeBluetooth] Setting race state:', state);
+
+        try {
+            const frame = buildRaceStateFrame(state);
+            const dataView = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
+
+            await BleClient.write(
+                deviceId,
+                PM5_SERVICES.PM_CONTROL,
+                PM5_CHARACTERISTICS.CSAFE_RX,
+                dataView
+            );
+
+            console.log('[NativeBluetooth] Race state set successfully');
+        } catch (e) {
+            console.error('[NativeBluetooth] Failed to set race state:', e);
+            throw e;
+        }
     }
 }
 

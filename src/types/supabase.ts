@@ -18,6 +18,7 @@ export interface Database {
                     created_at: string | null
                     ended_at: string | null
                     active_workout: Json | null
+                    race_state: number
                 }
                 Insert: {
                     id?: string
@@ -27,6 +28,7 @@ export interface Database {
                     created_at?: string | null
                     ended_at?: string | null
                     active_workout?: Json | null
+                    race_state?: number
                 }
                 Update: {
                     id?: string
@@ -36,6 +38,7 @@ export interface Database {
                     created_at?: string | null
                     ended_at?: string | null
                     active_workout?: Json | null
+                    race_state?: number
                 }
             }
             erg_session_participants: {
@@ -48,6 +51,7 @@ export interface Database {
                     data: Json | null
                     last_heartbeat: string | null
                     created_at: string | null
+                    group_name: string | null
                 }
                 Insert: {
                     id?: string
@@ -58,6 +62,7 @@ export interface Database {
                     data?: Json | null
                     last_heartbeat?: string | null
                     created_at?: string | null
+                    group_name?: string | null
                 }
                 Update: {
                     id?: string
@@ -68,6 +73,99 @@ export interface Database {
                     data?: Json | null
                     last_heartbeat?: string | null
                     created_at?: string | null
+                    group_name?: string | null
+                }
+            }
+            workout_logs: {
+                Row: {
+                    id: string
+                    user_id: string
+                    template_id: string | null
+                    workout_name: string
+                    workout_type: string
+                    completed_at: string
+                    duration_minutes: number | null
+                    distance_meters: number | null
+                    calories_burned: number | null
+                    average_heart_rate: number | null
+                    max_heart_rate: number | null
+                    average_stroke_rate: number | null
+                    notes: string | null
+                    rating: number | null
+                    created_at: string | null
+                    updated_at: string | null
+                    training_zone: string | null
+                    avg_split_500m: number | null
+                    perceived_exertion: number | null
+                    external_id: string | null
+                    source: string
+                    raw_data: Json | null
+                    watts: number | null
+                    duration_seconds: number | null
+                    zone_distribution: Json | null
+                    canonical_name: string | null
+                    manual_rwn: string | null
+                    rest_distance_meters: number | null
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    template_id?: string | null
+                    workout_name: string
+                    workout_type: string
+                    completed_at: string
+                    duration_minutes?: number | null
+                    distance_meters?: number | null
+                    calories_burned?: number | null
+                    average_heart_rate?: number | null
+                    max_heart_rate?: number | null
+                    average_stroke_rate?: number | null
+                    notes?: string | null
+                    rating?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                    training_zone?: string | null
+                    avg_split_500m?: number | null
+                    perceived_exertion?: number | null
+                    external_id?: string | null
+                    source?: string
+                    raw_data?: Json | null
+                    watts?: number | null
+                    duration_seconds?: number | null
+                    zone_distribution?: Json | null
+                    canonical_name?: string | null
+                    manual_rwn?: string | null
+                    rest_distance_meters?: number | null
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    template_id?: string | null
+                    workout_name?: string
+                    workout_type?: string
+                    completed_at?: string
+                    duration_minutes?: number | null
+                    distance_meters?: number | null
+                    calories_burned?: number | null
+                    average_heart_rate?: number | null
+                    max_heart_rate?: number | null
+                    average_stroke_rate?: number | null
+                    notes?: string | null
+                    rating?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                    training_zone?: string | null
+                    avg_split_500m?: number | null
+                    perceived_exertion?: number | null
+                    external_id?: string | null
+                    source?: string
+                    raw_data?: Json | null
+                    watts?: number | null
+                    duration_seconds?: number | null
+                    zone_distribution?: Json | null
+                    canonical_name?: string | null
+                    manual_rwn?: string | null
+                    rest_distance_meters?: number | null
                 }
             }
         }

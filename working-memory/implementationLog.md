@@ -1,203 +1,141 @@
-# Implementation Log: Feature Development History
+# Implementation Log: ErgLink Development History
 
 **Purpose**: Track what's been built, what worked, what failed, and why certain approaches were abandoned.
 
 ---
 
-## Phase 1: Foundation & Architecture (Completed)
+## Phase 1: Architecture & Bluetooth Foundation
 
-**Timeline**: Initial development → December 2025  
+**Timeline**: Late 2025 → January 2026
 **Status**: ✅ Complete
 
 ### What Was Built
-1. **Monorepo Structure**
-   - `packages/` organized by concern (auth, functions, ui, shared)
-   - `infra/` for database schema and infrastructure
-   - `scripts/` for build automation
-   - Clear separation of concerns
+1. **Capacitor + React + Vite Stack**
+   - Single codebase for web (Chrome) and native (iOS/Android)
+   - Platform-detected Bluetooth implementation via factory pattern
+   - Zustand for state management
 
-2. **Database Schema (Multi-Tenant)**
-   - Core entities: businesses, profiles, user_business_roles
-   - Service business entities: service_items, clients, workers, service_instances
-   - Row Level Security (RLS) policies for all tables
-   - Audit trail pattern established
+2. **PM5 Bluetooth Connectivity**
+   - Web Bluetooth API implementation (Chrome/Bluefy)
+   - Capacitor BLE plugin implementation (iOS/Android)
+   - Abstracted `BluetoothService` interface with swappable backends
+   - PM5 scanning, connection, disconnection
 
-3. **Workspace Configuration**
-   - TypeScript configured with strict mode
-   - pnpm workspace setup
-   - Shared tsconfig for consistency
+3. **PM5 Data Parsing (CSAFE v0.27)**
+   - 3 rowing characteristics parsed: General Status (0x31), Additional Status 1 (0x32), Additional Status 2 (0x33)
+   - `PM5DataAggregator` combines multi-characteristic updates into unified data
+   - Unit conversions: centiseconds→seconds, 0.1m→meters, C2 watts formula
+
+4. **Live Data Dashboard**
+   - Real-time display: distance, pace, stroke rate, watts, elapsed time
+   - Connection status indicators
+   - iOS Safari detection with app download prompt
 
 ### What Worked
-- ✅ Monorepo structure keeps things organized
-- ✅ Multi-tenant schema proven in ScheduleBoard v2
-- ✅ RLS policies enforce security at database level
-- ✅ TypeScript strict mode catches bugs early
+- ✅ Factory pattern for BT abstraction is clean and easily testable
+- ✅ PM5DataAggregator handles multi-characteristic timing well
+- ✅ Web Bluetooth works reliably in Chrome
+- ✅ Dark-themed mobile-first UI looks professional
 
-### What Failed / Lessons Learned
-- ❌ Initial plan for complex generator was over-engineered
-- 📝 Lesson: Simpler instruction-driven approach is more maintainable
+### Lessons Learned
+- 📝 iOS Safari has no Web Bluetooth — native app is mandatory for iOS
+- 📝 PM5 name prefix filter (`PM5`) is sufficient for device discovery
+- 📝 Need `optionalServices` in Web BT or can't discover PM_CONTROL service later
 
 ---
 
-## Phase 2: Authentication System (Completed)
+## Phase 2: Session & Racing Infrastructure
 
-**Timeline**: Early development  
-**Status**: ✅ Complete
+**Timeline**: January → February 2026
+**Status**: ✅ Core Complete, 🚧 Polish Remaining
 
 ### What Was Built
-1. **Invite-Based Onboarding**
-   - `create-invite` edge function: Creates invite records
-   - `send-invite-email` edge function: Sends email via Resend
-   - `process-invite` edge function: Creates account from invite
-   - `get-invite` edge function: Retrieves invite details
-   - `delete-user-account` edge function: Account deletion
+1. **Supabase Realtime Sessions**
+   - `erg_sessions` table: join code, active workout, race state
+   - `erg_session_participants` table: display name, live data, heartbeat
+   - Realtime subscription + 2s polling fallback for race state
 
-2. **Email Integration (Resend)**
-   - HTML email templates
-   - Invite email with direct signup link
-   - Verified domain: scheduleboard.co
+2. **Session Join Flow**
+   - Name entry + join code form (guest mode, no account required)
+   - Join → subscribe → receive workout programming + race state updates
 
-3. **Role-Based Access**
-   - 7-tier role system (USER → OWNER)
-   - Enforced via RLS policies
-   - Role assignment during invite acceptance
+3. **CSAFE Workout Programming**
+   - Fixed distance/time workouts
+   - Fixed interval workouts (distance or time)
+   - Variable interval workouts (chunked multi-frame sends)
+   - Screen state management (navigate PM5 to "Prepare to Row")
+
+4. **Race State Control**
+   - Race operation types: Disable, WaitToStart (SET), Start (GO), FalseStart, Terminate
+   - Visual overlays for race states (SET/GO/FALSE START)
+   - Auto-upload of stroke buffer on race TERMINATE
+
+5. **Stroke Buffer (IndexedDB)**
+   - Local IndexedDB buffer for every stroke via `idb` library
+   - Session-keyed storage with auto-increment
+   - Export to JSON blob for upload
+
+6. **Bot Simulator** (`scripts/simulate_bots.ts`)
+   - Simulates 1-N rowers joining sessions with fake physics data
+   - Useful for testing coach dashboard in LogbookCompanion without hardware
 
 ### What Worked
-- ✅ Invite flow eliminates manual password setup
-- ✅ Resend integration simple and reliable
-- ✅ Role-based access clear and enforceable
-- ✅ Edge Functions handle business logic securely
+- ✅ QR/code-based session join is fast and frictionless
+- ✅ Hybrid data strategy (local buffer + throttled realtime) is sound
+- ✅ Supabase Realtime subscription + polling fallback is robust
+- ✅ CSAFE frame construction produces valid PM5 commands
 
 ### What Failed / Lessons Learned
-- ⚠️ Email template styling needs mobile testing
-- 📝 Lesson: Always test emails on actual mobile devices
-- 📝 Lesson: Edge Functions cold start can be slow (~2s)
+- ⚠️ `uploadWorkoutLog()` was initially broken — referenced non-existent columns, had dead code paths
+- ⚠️ Native BT `programWorkout()` and `setRaceState()` were stubs until Phase 1 stabilization (Feb 2026)
+- 📝 Supabase types were manually maintained and drifted from actual schema — now fixed
+- 📝 `as any` casts on Supabase client calls masked real type errors
 
 ---
 
-## Phase 3: Notification System (Completed)
+## Phase 3: Phase 1 Stabilization (Current)
 
-**Timeline**: Mid development  
+**Timeline**: February 2026
 **Status**: ✅ Complete
 
-### What Was Built
-1. **Orchestrator Pattern**
-   - `notifications/orchestrator` routes notification requests
-   - Determines channel (email, SMS, push) based on preferences
-   - Handles retry logic and failure tracking
+### What Was Fixed
+1. **Native BT Parity**
+   - Ported `programWorkout()` and `setRaceState()` to native implementation
+   - Extracted shared CSAFE frame builders into `lib/pm5-protocol/commands.ts`
+   - Both Web and Native now use identical frame construction logic
 
-2. **Email Delivery**
-   - `notifications/send-email` handles actual sending
-   - Template selection based on notification type
-   - HTML + text fallback
+2. **Supabase Types**
+   - Added `race_state` column to `erg_sessions` type (was in schema but not typed)
+   - Added `group_name` column to `erg_session_participants` type
+   - Added `workout_logs` table type (full schema match)
+   - Removed all `as any` casts from `sessionService.ts`
 
-3. **Cleanup Job**
-   - `notifications/cleanup` removes old notification records
-   - Prevents database bloat
-   - Runs on scheduled cron
+3. **Session Service Cleanup**
+   - `uploadWorkoutLog()` rewritten with proper typed inserts matching actual `workout_logs` schema
+   - Uses `source: 'erg_link_live'` and `raw_data` JSONB for stroke data
+   - Proper fallback for anonymous users → participant record
 
-### What Worked
-- ✅ Orchestrator pattern allows future SMS/push addition
-- ✅ Separation of routing from delivery is clean
-- ✅ Cleanup job prevents database bloat
-
-### What Failed / Lessons Learned
-- 📝 Lesson: Need better monitoring for failed notifications
-- 📝 Lesson: Retry logic should be exponential backoff
+4. **Code Quality**
+   - Removed ~200 lines of duplicated inline CSAFE frame construction from `bluetooth.web.ts`
+   - Shared `buildWorkoutFrames()`, `buildRaceStateFrame()`, `buildProprietaryFrame()` in commands.ts
+   - Removed dead/commented-out code from session service
 
 ---
 
-## Phase 4: Subscription & Payments (Completed)
+## Not Yet Built
 
-**Timeline**: Mid development  
-**Status**: ✅ Complete
-
-### What Was Built
-1. **Stripe Integration**
-   - `subscriptions/create-intent` starts checkout
-   - `subscriptions/verify-session` confirms payment
-   - `subscriptions/stripe-webhooks` handles events
-   - `subscriptions/check-status` validates active subscription
-   - `subscriptions/manage-tier` updates plan
-
-2. **Tiered Plans**
-   - Free tier with limitations
-   - Paid tiers with feature unlocks
-   - Database fields track subscription status
-
-3. **Webhook Handling**
-   - Processes: payment_succeeded, subscription_updated, subscription_cancelled
-   - Updates database on subscription changes
-   - Idempotent webhook processing
-
-### What Worked
-- ✅ Stripe Checkout simplifies payment UI
-- ✅ Webhooks keep database in sync
-- ✅ Tiered access clear and enforceable
-- ✅ Test mode makes development easy
-
-### What Failed / Lessons Learned
-- ⚠️ Webhook signature verification critical (security)
-- 📝 Lesson: Always verify webhook signatures
-- 📝 Lesson: Need clear upgrade prompts in UI
-
----
-
-## Phase 5: Refactoring to Instruction-Driven (In Progress)
-
-**Timeline**: December 15, 2025  
-**Status**: 🚧 In Progress
-
-### What's Being Built
-1. **Working Memory Pattern**
-   - `working-memoryory/` directory structure
-   - Persistent context files (projectBrief, activeContext, etc.)
-   - Integration into copilot-instructions.md
-
-2. **Instruction Architecture**
-   - Plan to create `.github/instructions/setup/`
-   - Pattern documentation in `.github/instructions/patterns/`
-   - Workflow templates in `.github/instructions/workflows/`
-   - Business type examples
-
-3. **Generator Deprecation**
-   - Decision to move away from CLI generator
-   - Keep `generator/` as reference for now
-   - Focus on instruction-driven workflow
-
-### What's Working
-- ✅ Working Memory pattern solves stateless LLM problem
-- ✅ Copilot-instructions.md updated with workflow
-- ✅ Clear plan for instruction structure
-
-### Current Challenges
-- 🤔 Decide fate of `generator/` directory
-- 🤔 How tightly to couple with ScheduleBoard v2
-- 🤔 Business config: YAML vs markdown instructions
-
-### Next Steps
-1. Create `.github/instructions/setup/` structure
-2. Write first setup guide (00-project-init.md)
-3. Document database patterns
-4. Create business type decision tree
-5. Fill out remaining Working Memory files
-
----
-
-## Phase 6: Component Extraction (Not Started)
-
-**Timeline**: TBD  
-**Status**: ❌ Not Started
-
-### Planned Work
-1. **Extract Core Components from ScheduleBoard v2**
-   - Authentication UI components
-   - Service item management components
-   - Client/worker management components
-   - Mobile-optimized input components
-
-2. **Generalize Components**
-   - Add BusinessConfig props
+| Feature | Priority | Notes |
+|---|---|---|
+| Hardware verification (real PM5) | P0 | Blocked on physical device access |
+| Auto-reconnect on BT disconnect | P1 | Critical for 60+ min sessions |
+| Offline upload retry queue | P1 | Queue failed uploads, retry on reconnect |
+| React Router + screen decomposition | P1 | App.tsx is 450+ lines monolith |
+| Session end / leave UI | P2 | Only auto-end on TERMINATE currently |
+| Participant list / leaderboard | P2 | Athletes can't see other racers |
+| Unit tests (PM5 parsers) | P2 | Pure functions, easy to test |
+| CI/CD pipeline | P2 | No automated builds or checks |
+| iOS App Store submission | P3 | Scaffolded but not published |
+| Additional characteristics (0x34-0x3F) | P3 | Force curve, stroke data, etc. |
    - Make terminology configurable
    - Add feature toggle support
 
