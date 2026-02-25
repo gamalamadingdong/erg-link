@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { Database } from '../types/supabase';
 import type { PM5Data } from './bluetooth.types';
+import type { ActiveWorkoutSpec, ErgLinkUploadMeta } from '../types/ergSession.types';
 
 type Session = Database['public']['Tables']['erg_sessions']['Row'];
 type Participant = Database['public']['Tables']['erg_session_participants']['Row'];
@@ -16,6 +17,13 @@ const serializeStrokeData = (strokeData: PM5Data[]) => strokeData.map((stroke) =
     calories: stroke.calories,
     elapsedTime: stroke.elapsedTime,
 }));
+
+const toActiveWorkoutSpec = (input: Session['active_workout']): ActiveWorkoutSpec | null => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+    const candidate = input as Partial<ActiveWorkoutSpec>;
+    if (typeof candidate.type !== 'string') return null;
+    return candidate as ActiveWorkoutSpec;
+};
 
 export const sessionService = {
     /**
@@ -174,18 +182,31 @@ export const sessionService = {
         const lastStroke = strokeData[strokeData.length - 1];
         const user = (await supabase.auth.getUser()).data.user;
 
+        const { data: sessionForMetadata } = await supabase
+            .from('erg_sessions')
+            .select('active_workout')
+            .eq('id', sessionId)
+            .maybeSingle();
+
+        const activeWorkout = toActiveWorkoutSpec(sessionForMetadata?.active_workout ?? null);
+
         if (user) {
             // Authenticated user → insert into workout_logs
-            const rawData = {
+            const rawMeta: ErgLinkUploadMeta = {
                 strokes: serializeStrokeData(strokeData),
                 source: 'erg_link_live',
                 session_id: sessionId,
                 participant_id: participantId,
-            } as Json;
+                canonical_name: activeWorkout?.canonical_name ?? null,
+                template_id: activeWorkout?.template_id ?? null,
+                group_assignment_id: activeWorkout?.group_assignment_id ?? null,
+            };
+
+            const rawData = rawMeta as unknown as Json;
 
             const logEntry: Database['public']['Tables']['workout_logs']['Insert'] = {
                 user_id: user.id,
-                workout_name: 'Live Session Workout',
+                workout_name: activeWorkout?.title ?? activeWorkout?.canonical_name ?? 'Live Session Workout',
                 workout_type: 'erg_session',
                 completed_at: new Date().toISOString(),
                 duration_seconds: lastStroke.elapsedTime || 0,
@@ -193,6 +214,8 @@ export const sessionService = {
                 average_stroke_rate: lastStroke.strokeRate || null,
                 watts: lastStroke.watts || null,
                 source: 'erg_link_live',
+                canonical_name: activeWorkout?.canonical_name ?? null,
+                template_id: activeWorkout?.template_id ?? null,
                 raw_data: rawData,
             };
 

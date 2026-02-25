@@ -19,8 +19,15 @@ Defined shared TypeScript types in `src/types/ergSession.types.ts` (mirror of LC
 1. [ ] Update `appStore.ts` `activeWorkout` type to `ActiveWorkoutSpec | null`
 2. [ ] Update `App.tsx` to remove `as any` cast on `session.active_workout`
 3. [ ] Write `ActiveWorkoutSpec` → `WorkoutConfig` converter function (in `commands.ts`)
-4. [ ] Update `sessionService.ts` `uploadWorkoutLog()` to read metadata from active workout spec and populate `canonical_name`, `template_id`, `group_assignment_id` on upload
-5. [ ] Construct `ErgLinkUploadMeta` in `raw_data` on upload
+4. [x] Update `sessionService.ts` `uploadWorkoutLog()` to read metadata from active workout spec and populate `canonical_name`, `template_id`, `group_assignment_id` on upload
+5. [x] Construct `ErgLinkUploadMeta` in `raw_data` on upload
+
+### Build Stabilization (2026-02-24) ✅ COMPLETE
+- Fixed TypeScript build breaks in `sessionService.ts` and `bluetooth.web.ts`.
+- Root cause 1: Supabase schema types were missing required structure fields (`Relationships`, `Views`, `Functions`, `Enums`, `CompositeTypes`), causing `.insert()`/`.update()` overloads to infer `never`.
+- Root cause 2: Web Bluetooth `writeValue` expected `BufferSource` with `ArrayBuffer` backing; direct `Uint8Array<ArrayBufferLike>` caused type errors.
+- Implemented JSON-safe stroke serialization for `workout_logs.raw_data` in `uploadWorkoutLog()`.
+- Build verified clean: `npm run build` passes.
 
 ## Recent Progress (Phase 1 — Stabilize Foundation)
 - [x] **Shared CSAFE Frame Builders**: Extracted ~200 lines of inline frame construction from `bluetooth.web.ts` into shared `lib/pm5-protocol/commands.ts` — `buildProprietaryFrame()`, `buildWorkoutFrames()`, `buildRaceStateFrame()`
