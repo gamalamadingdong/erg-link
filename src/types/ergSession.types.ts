@@ -106,6 +106,24 @@ export interface ActiveWorkoutInterval {
   rest?: number;
 }
 
+const ACTIVE_WORKOUT_TYPES: ActiveWorkoutSpec['type'][] = [
+  'just_row',
+  'fixed_distance',
+  'fixed_time',
+  'interval_distance',
+  'interval_time',
+  'variable_interval',
+];
+
+export function toActiveWorkoutSpec(input: unknown): ActiveWorkoutSpec | null {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+  const candidate = input as Partial<ActiveWorkoutSpec>;
+  if (typeof candidate.type !== 'string') return null;
+  if (!ACTIVE_WORKOUT_TYPES.includes(candidate.type as ActiveWorkoutSpec['type'])) return null;
+  if (candidate._v !== undefined && candidate._v !== 1) return null;
+  return candidate as ActiveWorkoutSpec;
+}
+
 // ============================================================================
 // 2. ERGLINK UPLOAD META (EL writes → LC reads)
 //    Stored in: workout_logs.raw_data (JSONB)

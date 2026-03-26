@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { PM5Device, PM5Data, ConnectionState } from '../services/bluetooth.types';
+import type { ActiveWorkoutSpec } from '../types/ergSession.types';
 
 interface AppState {
     // Connection
@@ -20,7 +21,7 @@ interface AppState {
     sessionId: string | null;
     participantId: string | null;
     isJoining: boolean;
-    activeWorkout: { type: 'fixed_distance' | 'fixed_time'; value: number; split?: number } | null;
+    activeWorkout: ActiveWorkoutSpec | null;
     raceState: number | null;
 
     // Participant
@@ -36,7 +37,7 @@ interface AppState {
     endSession: () => PM5Data[];
     setParticipantName: (name: string | null) => void;
     setSessionInfo: (info: { sessionId: string; participantId: string; joinCode: string } | null) => void;
-    setActiveWorkout: (workout: { type: 'fixed_distance' | 'fixed_time'; value: number; split?: number } | null) => void;
+    setActiveWorkout: (workout: ActiveWorkoutSpec | null) => void;
     setRaceState: (state: number | null) => void;
 }
 

@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import type { Database } from '../types/supabase';
 import type { PM5Data } from './bluetooth.types';
-import type { ActiveWorkoutSpec, ErgLinkUploadMeta } from '../types/ergSession.types';
+import { toActiveWorkoutSpec, type ErgLinkUploadMeta } from '../types/ergSession.types';
 
 type Session = Database['public']['Tables']['erg_sessions']['Row'];
 type Participant = Database['public']['Tables']['erg_session_participants']['Row'];
@@ -17,13 +17,6 @@ const serializeStrokeData = (strokeData: PM5Data[]) => strokeData.map((stroke) =
     calories: stroke.calories,
     elapsedTime: stroke.elapsedTime,
 }));
-
-const toActiveWorkoutSpec = (input: Session['active_workout']): ActiveWorkoutSpec | null => {
-    if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
-    const candidate = input as Partial<ActiveWorkoutSpec>;
-    if (typeof candidate.type !== 'string') return null;
-    return candidate as ActiveWorkoutSpec;
-};
 
 export const sessionService = {
     /**

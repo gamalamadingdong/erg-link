@@ -6,6 +6,7 @@
  * - Web: navigator.bluetooth (Chrome, Bluefy)
  * - Native: @capacitor-community/bluetooth-le (iOS, Android)
  */
+import type { WorkoutConfig } from '../lib/pm5-protocol/commands';
 
 export interface PM5Device {
     id: string;
@@ -44,18 +45,7 @@ export interface BluetoothService {
     getConnectedDevice(): PM5Device | null;
 
     // Commands
-    programWorkout(workout: {
-        type: 'fixed_distance' | 'fixed_time' | 'interval_distance' | 'interval_time' | 'variable_interval',
-        value?: number,
-        split?: number,
-        rest?: number,
-        repeats?: number,
-        intervals?: Array<{
-            type: 'distance' | 'time' | 'rest';
-            value: number;
-            rest?: number;
-        }>
-    }): Promise<void>;
+    programWorkout(workout: WorkoutConfig): Promise<void>;
     setRaceState(state: number): Promise<void>;
 }
 

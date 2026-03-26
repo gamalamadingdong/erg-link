@@ -1,7 +1,7 @@
 # Active Context
 
-**Last Updated**: June 2025
-**Status**: Phase 1 Complete — Integration Contract Written — Ready for Phase 2
+**Last Updated**: 2026-02-25
+**Status**: Phase 1 Complete — Phase 3 Live Workout Wiring Complete — Phase 2 Code Quality Next
 
 ---
 
@@ -16,11 +16,17 @@ Defined shared TypeScript types in `src/types/ergSession.types.ts` (mirror of LC
 - **`ReconciliationMatch`** — dedup tolerances (±5min, ±10m, ±2s).
 
 ### Integration Wiring TODO (Phase 3)
-1. [ ] Update `appStore.ts` `activeWorkout` type to `ActiveWorkoutSpec | null`
-2. [ ] Update `App.tsx` to remove `as any` cast on `session.active_workout`
-3. [ ] Write `ActiveWorkoutSpec` → `WorkoutConfig` converter function (in `commands.ts`)
+1. [x] Update `appStore.ts` `activeWorkout` type to `ActiveWorkoutSpec | null`
+2. [x] Update `App.tsx` to remove `as any` cast on `session.active_workout`
+3. [x] Write `ActiveWorkoutSpec` → `WorkoutConfig` converter function (in `commands.ts`)
 4. [x] Update `sessionService.ts` `uploadWorkoutLog()` to read metadata from active workout spec and populate `canonical_name`, `template_id`, `group_assignment_id` on upload
 5. [x] Construct `ErgLinkUploadMeta` in `raw_data` on upload
+
+### Live Group Workout Wiring (2026-02-25) ✅ COMPLETE
+- Added shared parser `toActiveWorkoutSpec()` in `src/types/ergSession.types.ts` and reused it in both `App.tsx` and `sessionService.ts`.
+- Added `activeWorkoutSpecToWorkoutConfig()` in `src/lib/pm5-protocol/commands.ts` and wired PM5 programming paths through it (initial session load, realtime session update, and reconnect retry).
+- Updated PM5 workout config union to support `just_row` and guarded `SET_WORKOUTDURATION` emission so `just_row` frames are well-formed.
+- `npm run build` passes after wiring; `npm run lint` still has pre-existing unused-var errors in `bluetooth.native.ts` and `bluetooth.web.ts`.
 
 ### Build Stabilization (2026-02-24) ✅ COMPLETE
 - Fixed TypeScript build breaks in `sessionService.ts` and `bluetooth.web.ts`.

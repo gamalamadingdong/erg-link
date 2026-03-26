@@ -14,6 +14,7 @@ import {
     ScreenType,
     ScreenValue,
 } from '../../constants/csafe';
+import type { ActiveWorkoutSpec } from '../../types/ergSession.types';
 
 // ============================================================================
 // LOW-LEVEL FRAME CONSTRUCTION
@@ -88,7 +89,7 @@ function pushPayload32(arr: number[], val: number): void {
 
 /** Workout configuration for PM5 programming */
 export interface WorkoutConfig {
-    type: 'fixed_distance' | 'fixed_time' | 'interval_distance' | 'interval_time' | 'variable_interval';
+    type: 'just_row' | 'fixed_distance' | 'fixed_time' | 'interval_distance' | 'interval_time' | 'variable_interval';
     value?: number;
     split?: number;
     rest?: number;
@@ -98,6 +99,21 @@ export interface WorkoutConfig {
         value: number;
         rest?: number;
     }>;
+}
+
+export function activeWorkoutSpecToWorkoutConfig(workout: ActiveWorkoutSpec): WorkoutConfig {
+    return {
+        type: workout.type,
+        value: workout.value,
+        split: workout.split_value,
+        rest: workout.rest,
+        repeats: workout.repeats,
+        intervals: workout.intervals?.map((interval) => ({
+            type: interval.type,
+            value: interval.value,
+            rest: interval.rest,
+        })),
+    };
 }
 
 /**
@@ -126,17 +142,19 @@ export function buildWorkoutFrames(workout: WorkoutConfig): Uint8Array[] {
 
     pushPayload8(payload, workoutType);
 
-    // Command 2: SET_WORKOUTDURATION
-    pushPayload8(payload, CSAFE_PM_SET_WORKOUTDURATION);
-    pushPayload8(payload, 0x05); // 1 type + 4 value
+    if (workout.type !== 'just_row') {
+        // Command 2: SET_WORKOUTDURATION
+        pushPayload8(payload, CSAFE_PM_SET_WORKOUTDURATION);
+        pushPayload8(payload, 0x05); // 1 type + 4 value
 
-    if (workout.type === 'fixed_time' || workout.type === 'interval_time') {
-        pushPayload8(payload, WorkoutDurationType.Time);
-        const timeCentiseconds = Math.round((workout.value || 0) * 100);
-        pushPayload32(payload, timeCentiseconds);
-    } else if (workout.type === 'fixed_distance' || workout.type === 'interval_distance') {
-        pushPayload8(payload, WorkoutDurationType.Distance);
-        pushPayload32(payload, Math.round(workout.value || 0));
+        if (workout.type === 'fixed_time' || workout.type === 'interval_time') {
+            pushPayload8(payload, WorkoutDurationType.Time);
+            const timeCentiseconds = Math.round((workout.value || 0) * 100);
+            pushPayload32(payload, timeCentiseconds);
+        } else if (workout.type === 'fixed_distance' || workout.type === 'interval_distance') {
+            pushPayload8(payload, WorkoutDurationType.Distance);
+            pushPayload32(payload, Math.round(workout.value || 0));
+        }
     }
 
     // Command 3: SET_SPLITDURATION (for fixed workouts)
