@@ -1,5 +1,5 @@
 import type { ActiveWorkoutSpec, PM5ProgrammingReceiptV1 } from '../types/ergSession.types';
-import { PM5ProgrammingService } from './pm5ProgrammingService';
+import { createDirectPM5ProgrammingRequest, PM5ProgrammingService } from './pm5ProgrammingService';
 
 const assert = {
     equal(actual: unknown, expected: unknown): void {
@@ -73,4 +73,31 @@ await test('classifies PM5 rejection and records an explicit receipt', async () 
 
     assert.equal(receipt.status, 'rejected');
     assert.equal(receipts.at(-1)?.status, 'rejected');
+});
+
+await test('translates direct athlete RWN without a coach session', async () => {
+    const translated = createDirectPM5ProgrammingRequest('2000m', {
+        requestId: 'direct-1',
+        requestedAt: '2026-09-19T18:00:00.000Z',
+    });
+    assert.equal(translated.mode, 'exact');
+    assert.deepEqual(translated.request, {
+        _v: 1,
+        type: 'fixed_distance',
+        value: 2000,
+        programming_request_id: 'direct-1',
+        programming_requested_at: '2026-09-19T18:00:00.000Z',
+        source_rwn: '2000m',
+        lowering_mode: 'exact',
+        lowering_notes: [],
+    });
+
+    const intervals = createDirectPM5ProgrammingRequest('8x500m/3:30r');
+    assert.equal(intervals.mode, 'prompt_only');
+    assert.equal(intervals.request?.repeats, 8);
+    assert.equal(intervals.notes[0].includes('complete 8 reps'), true);
+
+    const unsupported = createDirectPM5ProgrammingRequest('v500m/40cal/500m');
+    assert.equal(unsupported.mode, 'unsupported');
+    assert.equal(unsupported.request, null);
 });

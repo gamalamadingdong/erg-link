@@ -4,6 +4,8 @@ import { bluetoothService } from '../services/bluetooth';
 import { strokeBuffer } from '../services/strokeBuffer';
 import type { PM5CaptureEvidence, PM5Diagnostic } from '../services/bluetooth.types';
 import type { PM5StatusProbe } from '../lib/pm5-protocol';
+import { createDirectPM5ProgrammingRequest, PM5ProgrammingService } from '../services/pm5ProgrammingService';
+import type { PM5ProgrammingReceiptV1 } from '../types/ergSession.types';
 
 import { RaceOverlay } from '../components/RaceOverlay';
 import { LiveDataGrid } from '../components/LiveDataGrid';
@@ -28,6 +30,10 @@ export function DashboardScreen() {
   const [statusProbe, setStatusProbe] = useState<PM5StatusProbe | null>(null);
   const [statusProbePending, setStatusProbePending] = useState(false);
   const [captureEvidence, setCaptureEvidence] = useState<PM5CaptureEvidence | null>(null);
+  const [rwn, setRwn] = useState('2000m');
+  const [translationNotes, setTranslationNotes] = useState<string[]>([]);
+  const [programmingReceipt, setProgrammingReceipt] = useState<PM5ProgrammingReceiptV1 | null>(null);
+  const [programmingPending, setProgrammingPending] = useState(false);
 
   const formatPace = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -135,6 +141,31 @@ export function DashboardScreen() {
     setCaptureEvidence(bluetoothService.getCaptureEvidence());
   };
 
+  const handleProgramRwn = async () => {
+    setError(null);
+    const translated = createDirectPM5ProgrammingRequest(rwn.trim());
+    setTranslationNotes(translated.notes);
+    if (!translated.request) {
+      setError(translated.notes.join(' ') || 'This RWN workout cannot be programmed on a PM5.');
+      return;
+    }
+    if (translated.mode === 'prompt_only'
+      && !window.confirm(`${translated.notes.join(' ')} Program the PM5-native core anyway?`)) return;
+
+    setProgrammingPending(true);
+    try {
+      const service = new PM5ProgrammingService({
+        program: (workout) => bluetoothService.programWorkout(workout),
+        writeReceipt: async (receipt) => setProgrammingReceipt(receipt),
+      });
+      await service.deliver(translated.request);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PM5 programming failed');
+    } finally {
+      setProgrammingPending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white safe-area-top safe-area-bottom">
       {/* Header */}
@@ -201,6 +232,34 @@ export function DashboardScreen() {
 
           {connectionState === 'connected' ? (
             <div className="space-y-3">
+              <div className="rounded-lg border border-erg-500/40 bg-erg-900/30 p-4 text-left">
+                <label htmlFor="direct-rwn" className="mb-2 block text-sm font-semibold text-erg-300">
+                  Program PM5 from RWN
+                </label>
+                <input
+                  id="direct-rwn"
+                  value={rwn}
+                  onChange={(event) => setRwn(event.target.value)}
+                  className="mb-3 min-h-11 w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 font-mono text-white focus:border-erg-500 focus:outline-none"
+                  placeholder="e.g. 4x500m/1:00r"
+                />
+                <button
+                  onClick={handleProgramRwn}
+                  disabled={programmingPending || !rwn.trim()}
+                  className="min-h-11 w-full rounded-lg bg-erg-500 px-6 py-3 font-semibold transition-colors hover:bg-erg-600 disabled:bg-gray-600"
+                >
+                  {programmingPending ? 'Programming PM5…' : 'Program PM5'}
+                </button>
+                {translationNotes.length > 0 && (
+                  <p className="mt-2 text-xs text-amber-300">{translationNotes.join(' ')}</p>
+                )}
+                {programmingReceipt && (
+                  <p className={`mt-2 text-sm font-semibold ${programmingReceipt.status === 'programmed' ? 'text-green-400' : 'text-amber-400'}`}>
+                    PM5 {programmingReceipt.status}
+                    {programmingReceipt.error ? `: ${programmingReceipt.error}` : ''}
+                  </p>
+                )}
+              </div>
               <button
                 onClick={handleDiagnostic}
                 disabled={diagnosticPending}
