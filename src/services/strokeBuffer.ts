@@ -1,40 +1,14 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { PM5Data } from './bluetooth.types';
+import { getErgLinkDB } from './ergLinkDb';
 
-// Define the DB Schema
-interface StrokeBufferDB extends DBSchema {
-    strokes: {
-        key: number; // auto-incrementing ID
-        value: PM5Data & { sessionId?: string; timestamp_local: number };
-        indexes: { 'by-session': string };
-    };
-}
-
-const DB_NAME = 'erg-link-buffer';
 const STORE_NAME = 'strokes';
-const DB_VERSION = 1;
 
 class StrokeBufferService {
-    private dbPromise: Promise<IDBPDatabase<StrokeBufferDB>>;
-
-    constructor() {
-        this.dbPromise = openDB<StrokeBufferDB>(DB_NAME, DB_VERSION, {
-            upgrade(db) {
-                // Create an objectStore for this database
-                const store = db.createObjectStore(STORE_NAME, {
-                    keyPath: 'id',
-                    autoIncrement: true,
-                });
-                store.createIndex('by-session', 'sessionId');
-            },
-        });
-    }
-
     /**
      * Appends a single stroke to the local buffer.
      */
     async append(data: PM5Data, sessionId?: string): Promise<void> {
-        const db = await this.dbPromise;
+        const db = await getErgLinkDB();
         await db.add(STORE_NAME, {
             ...data,
             sessionId: sessionId || 'pending',
@@ -46,7 +20,7 @@ class StrokeBufferService {
      * Retrieves all strokes for a specific session (or 'pending' if not yet assigned).
      */
     async getSessionStrokes(sessionId: string = 'pending'): Promise<(PM5Data & { timestamp_local: number })[]> {
-        const db = await this.dbPromise;
+        const db = await getErgLinkDB();
         return db.getAllFromIndex(STORE_NAME, 'by-session', sessionId);
     }
 
@@ -54,7 +28,7 @@ class StrokeBufferService {
      * Counts strokes in the buffer.
      */
     async count(sessionId: string = 'pending'): Promise<number> {
-        const db = await this.dbPromise;
+        const db = await getErgLinkDB();
         return db.countFromIndex(STORE_NAME, 'by-session', sessionId);
     }
 
@@ -62,7 +36,7 @@ class StrokeBufferService {
      * Clears strokes for a session after successful upload.
      */
     async clearSession(sessionId: string = 'pending'): Promise<void> {
-        const db = await this.dbPromise;
+        const db = await getErgLinkDB();
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const index = tx.store.index('by-session');
 

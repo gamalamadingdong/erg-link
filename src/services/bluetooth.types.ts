@@ -7,6 +7,14 @@
  * - Native: @capacitor-community/bluetooth-le (iOS, Android)
  */
 import type { WorkoutConfig } from '../lib/pm5-protocol/commands';
+import type { PM5StatusProbe } from '../lib/pm5-protocol/transport';
+import type { PM5CompletedCaptureV1 } from '../lib/pm5-protocol/capture';
+import type {
+    StrokeData,
+    SplitIntervalData,
+    EndWorkoutSummaryData,
+    AdditionalEndWorkoutSummaryData,
+} from '../lib/pm5-protocol/types';
 
 export interface PM5Device {
     id: string;
@@ -23,6 +31,43 @@ export interface PM5Data {
     heartRate?: number;
     calories?: number;
     elapsedTime: number;     // seconds
+}
+
+export interface PM5Diagnostic {
+    device: PM5Device;
+    model?: string;
+    serialNumber?: string;
+    hardwareRevision?: string;
+    firmwareRevision?: string;
+    manufacturerName?: string;
+    ergMachineType?: number;
+    attMtu?: number;
+    linkLayerMaxBytes?: number;
+    negotiatedMtu?: number;
+    controlCapabilities?: {
+        rx: PM5GATTProperties;
+        tx: PM5GATTProperties;
+    };
+    readErrors: string[];
+}
+
+export interface PM5GATTProperties {
+    read: boolean;
+    write: boolean;
+    writeWithoutResponse: boolean;
+    notify: boolean;
+    indicate: boolean;
+}
+
+export interface PM5CaptureEvidence {
+    strokeNotifications: number;
+    splitNotifications: number;
+    summaryNotifications: number;
+    latestStroke?: StrokeData;
+    latestSplit?: SplitIntervalData;
+    latestSummary?: EndWorkoutSummaryData;
+    latestAdditionalSummary?: AdditionalEndWorkoutSummaryData;
+    capture?: PM5CompletedCaptureV1;
 }
 
 export interface BluetoothService {
@@ -43,6 +88,9 @@ export interface BluetoothService {
     // Data
     onData(callback: (data: PM5Data) => void): void;
     getConnectedDevice(): PM5Device | null;
+    getDiagnostics(): Promise<PM5Diagnostic>;
+    probeStatus(): Promise<PM5StatusProbe>;
+    getCaptureEvidence(): PM5CaptureEvidence;
 
     // Commands
     programWorkout(workout: WorkoutConfig): Promise<void>;

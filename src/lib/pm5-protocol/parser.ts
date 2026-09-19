@@ -2,7 +2,7 @@
  * PM5 Protocol Data Parsers
  * 
  * Parses raw BLE characteristic data from PM5 performance monitors.
- * Based on Concept2 PM CSAFE Communication Definition V0.27
+ * Based on Concept2 PM CSAFE Communication Definition V0.34
  */
 
 import {
@@ -12,6 +12,10 @@ import {
     type GeneralStatusData,
     type AdditionalStatus1Data,
     type AdditionalStatus2Data,
+    type StrokeData,
+    type SplitIntervalData,
+    type EndWorkoutSummaryData,
+    type AdditionalEndWorkoutSummaryData,
     type PM5AggregatedData,
     WorkoutType,
     IntervalType,
@@ -107,6 +111,67 @@ export function parseRowingAdditionalStatus2(data: DataView): AdditionalStatus2D
     };
 }
 
+export function parseRowingStrokeData(data: DataView): StrokeData {
+    return {
+        elapsedTime: getUint24LE(data, 0),
+        distance: getUint24LE(data, 3),
+        driveLength: data.getUint8(6),
+        driveTime: data.getUint8(7),
+        recoveryTime: getUint16LE(data, 8),
+        strokeDistance: getUint16LE(data, 10),
+        peakDriveForce: getUint16LE(data, 12),
+        averageDriveForce: getUint16LE(data, 14),
+        workPerStroke: getUint16LE(data, 16),
+        strokeCount: getUint16LE(data, 18),
+    };
+}
+
+export function parseRowingSplitIntervalData(data: DataView): SplitIntervalData {
+    return {
+        elapsedTime: getUint24LE(data, 0),
+        distance: getUint24LE(data, 3),
+        intervalTime: getUint24LE(data, 6),
+        intervalDistance: getUint24LE(data, 9),
+        restTime: getUint16LE(data, 12),
+        restDistance: getUint16LE(data, 14),
+        intervalType: data.getUint8(16),
+        intervalNumber: data.getUint8(17),
+    };
+}
+
+export function parseRowingEndWorkoutSummary(data: DataView): EndWorkoutSummaryData {
+    return {
+        logDate: getUint16LE(data, 0),
+        logTime: getUint16LE(data, 2),
+        elapsedTime: getUint24LE(data, 4),
+        distance: getUint24LE(data, 7),
+        averageStrokeRate: data.getUint8(10),
+        endingHeartRate: data.getUint8(11),
+        averageHeartRate: data.getUint8(12),
+        minHeartRate: data.getUint8(13),
+        maxHeartRate: data.getUint8(14),
+        averageDragFactor: data.getUint8(15),
+        recoveryHeartRate: data.getUint8(16),
+        workoutType: data.getUint8(17),
+        averagePace: getUint16LE(data, 18),
+    };
+}
+
+export function parseRowingAdditionalEndWorkoutSummary(data: DataView): AdditionalEndWorkoutSummaryData {
+    return {
+        logDate: getUint16LE(data, 0),
+        logTime: getUint16LE(data, 2),
+        intervalType: data.getUint8(4),
+        intervalSize: getUint16LE(data, 5),
+        intervalCount: data.getUint8(7),
+        totalCalories: getUint16LE(data, 8),
+        watts: getUint16LE(data, 10),
+        totalRestDistance: getUint24LE(data, 12),
+        restTime: getUint16LE(data, 15),
+        averageCalories: getUint16LE(data, 17),
+    };
+}
+
 // ============================================================================
 // DATA AGGREGATOR
 // ============================================================================
@@ -131,7 +196,7 @@ export class PM5DataAggregator {
             intervalType: IntervalType.TIME,
             workoutState: WorkoutState.WAITING,
             rowingState: RowingState.INACTIVE,
-            strokeState: StrokeState.WAITING,
+            strokeState: StrokeState.WAITING_FOR_MINIMUM_SPEED,
             pace: 0,
             averagePace: 0,
             strokeRate: 0,

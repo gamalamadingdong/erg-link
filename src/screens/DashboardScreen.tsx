@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { bluetoothService } from '../services/bluetooth';
 import { strokeBuffer } from '../services/strokeBuffer';
+import type { PM5CaptureEvidence, PM5Diagnostic } from '../services/bluetooth.types';
+import type { PM5StatusProbe } from '../lib/pm5-protocol';
 
 import { RaceOverlay } from '../components/RaceOverlay';
 import { LiveDataGrid } from '../components/LiveDataGrid';
@@ -21,6 +23,11 @@ export function DashboardScreen() {
   } = useAppStore();
 
   const [error, setError] = useState<string | null>(null);
+  const [diagnostic, setDiagnostic] = useState<PM5Diagnostic | null>(null);
+  const [diagnosticPending, setDiagnosticPending] = useState(false);
+  const [statusProbe, setStatusProbe] = useState<PM5StatusProbe | null>(null);
+  const [statusProbePending, setStatusProbePending] = useState(false);
+  const [captureEvidence, setCaptureEvidence] = useState<PM5CaptureEvidence | null>(null);
 
   const formatPace = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -95,6 +102,37 @@ export function DashboardScreen() {
     await bluetoothService.disconnect();
     setConnectionState('disconnected');
     setConnectedDevice(null);
+    setDiagnostic(null);
+    setStatusProbe(null);
+    setCaptureEvidence(null);
+  };
+
+  const handleDiagnostic = async () => {
+    setError(null);
+    setDiagnosticPending(true);
+    try {
+      setDiagnostic(await bluetoothService.getDiagnostics());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PM5 diagnostic failed');
+    } finally {
+      setDiagnosticPending(false);
+    }
+  };
+
+  const handleStatusProbe = async () => {
+    setError(null);
+    setStatusProbePending(true);
+    try {
+      setStatusProbe(await bluetoothService.probeStatus());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PM5 status probe failed');
+    } finally {
+      setStatusProbePending(false);
+    }
+  };
+
+  const handleCaptureEvidence = () => {
+    setCaptureEvidence(bluetoothService.getCaptureEvidence());
   };
 
   return (
@@ -162,12 +200,34 @@ export function DashboardScreen() {
           )}
 
           {connectionState === 'connected' ? (
-            <button
-              onClick={handleDisconnect}
-              className="w-full py-4 px-6 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors shadow-md"
-            >
-              Disconnect
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={handleDiagnostic}
+                disabled={diagnosticPending}
+                className="w-full min-h-11 py-3 px-6 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 rounded-lg font-semibold transition-colors shadow-md"
+              >
+                {diagnosticPending ? 'Reading PM5…' : 'Run Read-Only Diagnostic'}
+              </button>
+              <button
+                onClick={handleStatusProbe}
+                disabled={statusProbePending}
+                className="w-full min-h-11 py-3 px-6 bg-cyan-700 hover:bg-cyan-800 disabled:bg-gray-600 rounded-lg font-semibold transition-colors shadow-md"
+              >
+                {statusProbePending ? 'Querying PM5…' : 'Probe CSAFE Status (Read-Only)'}
+              </button>
+              <button
+                onClick={handleCaptureEvidence}
+                className="w-full min-h-11 py-3 px-6 bg-violet-700 hover:bg-violet-800 rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Show Capture Evidence
+              </button>
+              <button
+                onClick={handleDisconnect}
+                className="w-full min-h-11 py-3 px-6 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Disconnect
+              </button>
+            </div>
           ) : (
             <button
               onClick={handleConnect}
@@ -181,6 +241,33 @@ export function DashboardScreen() {
           )}
 
           {error && <p className="mt-4 text-red-400 text-sm text-center">{error}</p>}
+
+          {diagnostic && (
+            <div className="mt-4 rounded-lg border border-blue-500/40 bg-blue-950/30 p-3 text-left">
+              <div className="mb-2 text-sm font-semibold text-blue-300">PM5 Diagnostic</div>
+              <pre className="select-text whitespace-pre-wrap break-words text-xs text-gray-300">
+                {JSON.stringify(diagnostic, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {statusProbe && (
+            <div className="mt-4 rounded-lg border border-cyan-500/40 bg-cyan-950/30 p-3 text-left">
+              <div className="mb-2 text-sm font-semibold text-cyan-300">CSAFE Status Probe</div>
+              <pre className="select-text whitespace-pre-wrap break-words text-xs text-gray-300">
+                {JSON.stringify(statusProbe, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {captureEvidence && (
+            <div className="mt-4 rounded-lg border border-violet-500/40 bg-violet-950/30 p-3 text-left">
+              <div className="mb-2 text-sm font-semibold text-violet-300">PM5 Capture Evidence</div>
+              <pre className="select-text whitespace-pre-wrap break-words text-xs text-gray-300">
+                {JSON.stringify(captureEvidence, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
 
         {/* Live Data */}

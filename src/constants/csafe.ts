@@ -6,6 +6,7 @@ export const CSAFE_FRAME_STOP = 0xF2;
 export const CSAFE_FRAME_STUFF = 0xF3;
 
 // Public CSAFE Commands (Examples from spec)
+export const CSAFE_GETSTATUS_CMD = 0x80;
 export const CSAFE_SETTWORK_CMD = 0x20;
 export const CSAFE_SETHORIZONTAL_CMD = 0x21;
 export const CSAFE_SETPROGRAM_CMD = 0x24; // Used to launch a pre-configured or fully set up workout
@@ -29,7 +30,10 @@ export const CSAFE_PM_SET_RESTDURATION = 0x04;
 export const CSAFE_PM_SET_SPLITDURATION = 0x05;
 export const CSAFE_PM_CONFIGURE_WORKOUT = 0x14;
 export const CSAFE_PM_SET_SCREENSTATE = 0x13;
-export const CSAFE_PM_SET_RACEOPERATIONTYPE = 0x3E;
+export const CSAFE_PM_SET_INTERVALTYPE = 0x17;
+export const CSAFE_PM_WORKOUTINTERVALCOUNT = 0x18;
+export const CSAFE_PM_SET_RACEOPERATIONTYPE = 0x1E;
+export const CSAFE_PM_SET_RACECONTROLPARAMS = 0x3E;
 
 // Extended Frame
 export const CSAFE_EXTENDED_FRAME_START = 0xF0;
@@ -69,7 +73,7 @@ export type ScreenType = typeof ScreenType[keyof typeof ScreenType];
 
 export const ScreenValue = {
     PrepareToRow: 1,
-    WorkoutResults: 2
+    TerminateWorkout: 2
 } as const;
 export type ScreenValue = typeof ScreenValue[keyof typeof ScreenValue];
 
