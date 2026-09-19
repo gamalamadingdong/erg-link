@@ -1,3 +1,4 @@
+import { parseRWN, translateWorkoutToPm5, type Pm5TranslationMode } from '@readyall/rwn';
 import { activeWorkoutSpecToWorkoutConfig, type WorkoutConfig } from '../lib/pm5-protocol/commands';
 import type {
     ActiveWorkoutSpec,
@@ -9,6 +10,36 @@ export interface PM5ProgrammingServiceDependencies {
     program: (workout: WorkoutConfig) => Promise<void>;
     writeReceipt: (receipt: PM5ProgrammingReceiptV1) => Promise<void>;
     now?: () => string;
+}
+
+export interface DirectPM5ProgrammingRequest {
+    mode: Pm5TranslationMode;
+    request: ActiveWorkoutSpec | null;
+    notes: string[];
+}
+
+export function createDirectPM5ProgrammingRequest(
+    rwn: string,
+    options: { requestId?: string; requestedAt?: string } = {},
+): DirectPM5ProgrammingRequest {
+    const structure = parseRWN(rwn);
+    if (!structure) return { mode: 'unsupported', request: null, notes: ['RWN could not be parsed.'] };
+    const translated = translateWorkoutToPm5(structure);
+    if (!translated.workout || translated.mode === 'unsupported') {
+        return { mode: 'unsupported', request: null, notes: translated.notes };
+    }
+    return {
+        mode: translated.mode,
+        notes: translated.notes,
+        request: {
+            ...translated.workout,
+            programming_request_id: options.requestId ?? crypto.randomUUID(),
+            programming_requested_at: options.requestedAt ?? new Date().toISOString(),
+            source_rwn: rwn,
+            lowering_mode: translated.mode,
+            lowering_notes: translated.notes,
+        },
+    };
 }
 
 export interface PM5ProgrammingDeliveryOptions {
