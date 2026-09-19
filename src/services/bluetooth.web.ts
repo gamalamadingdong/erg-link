@@ -69,6 +69,8 @@ class WebBluetoothService implements BluetoothService {
     };
     private currentCapture: PM5CaptureAccumulator | null = null;
     private lastCSAFEFrameToggle: boolean | undefined;
+    private csafeQueue: Promise<void> = Promise.resolve();
+    private controlValueLimit = 20;
 
     async initialize(): Promise<void> {
         // Web Bluetooth doesn't require initialization
@@ -139,6 +141,7 @@ class WebBluetoothService implements BluetoothService {
             await this.subscribeToCharacteristic(rowingService, PM5_CHARACTERISTICS.SPLIT_INTERVAL_DATA);
             await this.subscribeToCharacteristic(rowingService, PM5_CHARACTERISTICS.END_OF_WORKOUT_SUMMARY);
             await this.subscribeToCharacteristic(rowingService, PM5_CHARACTERISTICS.END_OF_WORKOUT_ADDITIONAL_SUMMARY);
+            await this.refreshControlValueLimit();
 
             // Set up disconnection handler
             this.device.addEventListener('gattserverdisconnected', () => {
@@ -183,6 +186,18 @@ class WebBluetoothService implements BluetoothService {
             console.log(`[WebBT] Subscribed to: ${uuid}`);
         } catch (error) {
             console.warn(`[WebBT] Failed to subscribe to ${uuid}:`, error);
+        }
+    }
+
+    private async refreshControlValueLimit(): Promise<void> {
+        if (!this.server) return;
+        try {
+            const service = await this.server.getPrimaryService(PM5_SERVICES.C2_DEVICE_INFO);
+            const characteristic = await service.getCharacteristic(PM5_DEVICE_INFO_CHARACTERISTICS.ATT_MTU);
+            const mtu = decodePM5Uint16LE(await characteristic.readValue());
+            this.controlValueLimit = Math.max(20, mtu - 3);
+        } catch (error) {
+            console.warn('[WebBT] Could not read PM5 ATT MTU; retaining 20-byte control limit:', error);
         }
     }
 
@@ -383,13 +398,21 @@ class WebBluetoothService implements BluetoothService {
     }
 
     async probeStatus(): Promise<PM5StatusProbe> {
-        const frame = buildCSAFEFrame(CSAFE_GETSTATUS_CMD, []);
-        return parsePM5StatusProbe(await this.exchangeCSAFEFrame(frame));
+        return this.enqueueCSAFE(async () => {
+            const frame = buildCSAFEFrame(CSAFE_GETSTATUS_CMD, []);
+            return parsePM5StatusProbe(await this.exchangeCSAFEFrame(frame));
+        });
+    }
+
+    private enqueueCSAFE<T>(operation: () => Promise<T>): Promise<T> {
+        const result = this.csafeQueue.then(operation, operation);
+        this.csafeQueue = result.then(() => undefined, () => undefined);
+        return result;
     }
 
     private async exchangeCSAFEFrame(frame: Uint8Array): Promise<number[]> {
         if (!this.server || !this.connected) throw new Error('PM5 is not connected');
-        assertPM5ControlFrameLength(frame);
+        assertPM5ControlFrameLength(frame, this.controlValueLimit);
 
         const service = await this.server.getPrimaryService(PM5_SERVICES.PM_CONTROL);
         const rxChar = await service.getCharacteristic(PM5_CHARACTERISTICS.CSAFE_RX);
@@ -460,13 +483,13 @@ class WebBluetoothService implements BluetoothService {
 
     async programWorkout(workout: WorkoutConfig): Promise<void> {
         if (!this.server || !this.connected) {
-            console.warn('[WebBT] Cannot program workout: Not connected');
-            return;
+            throw new Error('PM5 is not connected');
         }
 
-        console.log('[WebBT] Programming workout:', workout);
+        return this.enqueueCSAFE(async () => {
+          console.log('[WebBT] Programming workout:', workout);
 
-        try {
+          try {
             const frames = buildWorkoutFrames(workout);
 
             for (let i = 0; i < frames.length; i++) {
@@ -481,30 +504,32 @@ class WebBluetoothService implements BluetoothService {
             }
 
             console.log('[WebBT] PM5 Programmed Successfully');
-        } catch (e) {
-            console.error('[WebBT] Failed to program workout:', e);
-            throw e;
-        }
+          } catch (e) {
+              console.error('[WebBT] Failed to program workout:', e);
+              throw e;
+          }
+        });
     }
 
     async setRaceState(state: number): Promise<void> {
         if (!this.server || !this.connected) {
-            console.warn('[WebBT] Cannot set race state: Not connected');
-            return;
+            throw new Error('PM5 is not connected');
         }
 
-        console.log('[WebBT] Setting Race State:', state);
+        return this.enqueueCSAFE(async () => {
+          console.log('[WebBT] Setting Race State:', state);
 
-        try {
+          try {
             const frame = buildRaceStateFrame(state);
             console.log('[WebBT] Sending Race Control Frame:', frame);
             assertPM5AcceptedResponse(await this.exchangeCSAFEFrame(frame));
 
             console.log('[WebBT] Race State Set Successfully');
-        } catch (e) {
-            console.error('[WebBT] Failed to set race state:', e);
-            throw e;
-        }
+          } catch (e) {
+              console.error('[WebBT] Failed to set race state:', e);
+              throw e;
+          }
+        });
     }
 }
 

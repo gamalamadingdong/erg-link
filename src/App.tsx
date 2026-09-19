@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { useAppStore } from './store/appStore';
@@ -6,6 +6,7 @@ import { bluetoothService } from './services/bluetooth';
 import { activeWorkoutSpecToWorkoutConfig } from './lib/pm5-protocol/commands';
 import { toActiveWorkoutSpec } from './types/ergSession.types';
 import { strokeBuffer } from './services/strokeBuffer';
+import { PM5ProgrammingService } from './services/pm5ProgrammingService';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { IOSDownloadPrompt } from './components/IOSDownloadPrompt';
@@ -17,6 +18,8 @@ function SessionSubscriber() {
   const sessionId = useAppStore(s => s.sessionId);
   const setActiveWorkout = useAppStore(s => s.setActiveWorkout);
   const setRaceState = useAppStore(s => s.setRaceState);
+  const participantId = useAppStore(s => s.participantId);
+  const programmingServiceRef = useRef<PM5ProgrammingService | null>(null);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -24,13 +27,25 @@ function SessionSubscriber() {
     let unsubscribe: (() => void) | undefined;
 
     import('./services/sessionService').then(({ sessionService }) => {
+      programmingServiceRef.current = participantId ? new PM5ProgrammingService({
+        program: (workout) => bluetoothService.programWorkout(workout),
+        writeReceipt: (receipt) => sessionService.updateProgrammingReceipt(participantId, receipt),
+      }) : null;
+
+      const deliver = (workout: ReturnType<typeof toActiveWorkoutSpec>, force = false) => {
+        if (!workout) return;
+        if (programmingServiceRef.current && workout.programming_request_id) {
+          void programmingServiceRef.current.deliver(workout, { force }).catch(console.error);
+          return;
+        }
+        void bluetoothService.programWorkout(activeWorkoutSpecToWorkoutConfig(workout)).catch(console.error);
+      };
+
       sessionService.getCurrentSession(sessionId).then(session => {
         const currentWorkout = toActiveWorkoutSpec(session?.active_workout ?? null);
         if (currentWorkout) {
           setActiveWorkout(currentWorkout);
-          bluetoothService.programWorkout(activeWorkoutSpecToWorkoutConfig(currentWorkout)).catch(err => {
-            console.error('[SessionSubscriber] Failed to program initial workout:', err);
-          });
+          deliver(currentWorkout);
         }
       }).catch(err => console.error('[SessionSubscriber] Failed to get session:', err));
 
@@ -40,7 +55,7 @@ function SessionSubscriber() {
           const current = useAppStore.getState().activeWorkout;
           if (JSON.stringify(newWorkout) !== JSON.stringify(current)) {
             setActiveWorkout(newWorkout);
-            bluetoothService.programWorkout(activeWorkoutSpecToWorkoutConfig(newWorkout)).catch(console.error);
+            deliver(newWorkout);
           }
 
           if (newWorkout.start_type === 'synchronized') {
@@ -71,7 +86,7 @@ function SessionSubscriber() {
     }).catch(err => console.error('[SessionSubscriber] Failed to load service:', err));
 
     return () => { if (unsubscribe) unsubscribe(); };
-  }, [sessionId, setActiveWorkout, setRaceState]);
+  }, [sessionId, participantId, setActiveWorkout, setRaceState]);
 
   // Retry programming when PM5 connects
   const connectionState = useAppStore(s => s.connectionState);
@@ -79,7 +94,11 @@ function SessionSubscriber() {
 
   useEffect(() => {
     if (connectionState === 'connected' && activeWorkout) {
-      bluetoothService.programWorkout(activeWorkoutSpecToWorkoutConfig(activeWorkout)).catch(console.error);
+      if (programmingServiceRef.current && activeWorkout.programming_request_id) {
+        void programmingServiceRef.current.deliver(activeWorkout, { force: true }).catch(console.error);
+      } else {
+        void bluetoothService.programWorkout(activeWorkoutSpecToWorkoutConfig(activeWorkout)).catch(console.error);
+      }
     }
   }, [connectionState, activeWorkout]);
 

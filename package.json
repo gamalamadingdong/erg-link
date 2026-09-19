@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test:protocol": "tsx --test src/lib/pm5-protocol/*.test.ts src/services/*aptureStore.test.ts",
+    "test:protocol": "tsx --test src/lib/pm5-protocol/*.test.ts src/services/*aptureStore.test.ts src/services/pm5ProgrammingService.test.ts",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap open ios",

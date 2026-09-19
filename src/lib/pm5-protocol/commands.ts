@@ -80,24 +80,33 @@ export interface WorkoutConfig {
     rest?: number;
     repeats?: number;
     intervals?: Array<{
-        type: 'distance' | 'time' | 'rest';
+        type: 'distance' | 'time';
         value: number;
         rest?: number;
     }>;
 }
 
 export function activeWorkoutSpecToWorkoutConfig(workout: ActiveWorkoutSpec): WorkoutConfig {
+    const intervals: NonNullable<WorkoutConfig['intervals']> = [];
+    for (const interval of workout.intervals ?? []) {
+        if (interval.type === 'rest') {
+            const previous = intervals.at(-1);
+            if (previous) previous.rest = interval.value;
+            continue;
+        }
+        intervals.push({
+            type: interval.type,
+            value: interval.value,
+            rest: interval.rest ?? 0,
+        });
+    }
     return {
         type: workout.type,
         value: workout.value,
         split: workout.split_value,
         rest: workout.rest,
         repeats: workout.repeats,
-        intervals: workout.intervals?.map((interval) => ({
-            type: interval.type,
-            value: interval.value,
-            rest: interval.rest,
-        })),
+        intervals: workout.intervals ? intervals : undefined,
     };
 }
 
@@ -204,9 +213,6 @@ function buildVariableIntervalFrames(
         pushPayload8(payload, 0x01);
         pushPayload8(payload, i);
 
-        if (interval.type === 'rest') {
-            throw new Error('Variable workout intervals must be work intervals with optional rest');
-        }
         pushPayload8(payload, CSAFE_PM_SET_INTERVALTYPE);
         pushPayload8(payload, 0x01);
         pushPayload8(payload, interval.type === 'time' ? 0x00 : 0x01);

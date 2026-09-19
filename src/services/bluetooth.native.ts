@@ -55,6 +55,8 @@ export class NativeBluetoothService implements BluetoothService {
     };
     private currentCapture: PM5CaptureAccumulator | null = null;
     private lastCSAFEFrameToggle: boolean | undefined;
+    private csafeQueue: Promise<void> = Promise.resolve();
+    private controlValueLimit = 20;
 
     async initialize(): Promise<void> {
         try {
@@ -159,6 +161,7 @@ export class NativeBluetoothService implements BluetoothService {
 
             // Subscribe to multiple PM5 characteristics for comprehensive data
             await this.subscribeToCharacteristics(deviceId);
+            await this.refreshControlValueLimit(deviceId);
 
             this.connectionState = 'connected';
             console.log('[NativeBluetooth] Connected and subscribed to notifications');
@@ -173,6 +176,15 @@ export class NativeBluetoothService implements BluetoothService {
     /**
      * Subscribe to all relevant PM5 characteristics
      */
+    private async refreshControlValueLimit(deviceId: string): Promise<void> {
+        try {
+            const mtu = await BleClient.getMtu(deviceId);
+            this.controlValueLimit = Math.max(20, mtu - 3);
+        } catch (error) {
+            console.warn('[NativeBluetooth] Could not read negotiated MTU; retaining 20-byte control limit:', error);
+        }
+    }
+
     private async subscribeToCharacteristics(deviceId: string): Promise<void> {
         const characteristicsToSubscribe = [
             PM5_CHARACTERISTICS.ROWING_GENERAL_STATUS,      // 0x31 - time, distance, state
@@ -415,14 +427,22 @@ export class NativeBluetoothService implements BluetoothService {
     }
 
     async probeStatus(): Promise<PM5StatusProbe> {
-        const frame = buildCSAFEFrame(CSAFE_GETSTATUS_CMD, []);
-        return parsePM5StatusProbe(await this.exchangeCSAFEFrame(frame));
+        return this.enqueueCSAFE(async () => {
+            const frame = buildCSAFEFrame(CSAFE_GETSTATUS_CMD, []);
+            return parsePM5StatusProbe(await this.exchangeCSAFEFrame(frame));
+        });
+    }
+
+    private enqueueCSAFE<T>(operation: () => Promise<T>): Promise<T> {
+        const result = this.csafeQueue.then(operation, operation);
+        this.csafeQueue = result.then(() => undefined, () => undefined);
+        return result;
     }
 
     private async exchangeCSAFEFrame(frame: Uint8Array): Promise<number[]> {
         if (!this.connectedDevice) throw new Error('PM5 is not connected');
         const deviceId = this.connectedDevice.deviceId;
-        assertPM5ControlFrameLength(frame);
+        assertPM5ControlFrameLength(frame, this.controlValueLimit);
 
         const services = await BleClient.getServices(deviceId);
         const control = services.find((service) => service.uuid.toLowerCase() === PM5_SERVICES.PM_CONTROL);
@@ -506,13 +526,13 @@ export class NativeBluetoothService implements BluetoothService {
 
     async programWorkout(workout: WorkoutConfig): Promise<void> {
         if (!this.connectedDevice) {
-            console.warn('[NativeBluetooth] Cannot program workout: Not connected');
-            return;
+            throw new Error('PM5 is not connected');
         }
 
-        console.log('[NativeBluetooth] Programming workout:', workout);
+        return this.enqueueCSAFE(async () => {
+          console.log('[NativeBluetooth] Programming workout:', workout);
 
-        try {
+          try {
             const frames = buildWorkoutFrames(workout);
 
             for (let i = 0; i < frames.length; i++) {
@@ -527,29 +547,31 @@ export class NativeBluetoothService implements BluetoothService {
             }
 
             console.log('[NativeBluetooth] Workout programmed successfully');
-        } catch (e) {
-            console.error('[NativeBluetooth] Failed to program workout:', e);
-            throw e;
-        }
+          } catch (e) {
+              console.error('[NativeBluetooth] Failed to program workout:', e);
+              throw e;
+          }
+        });
     }
 
     async setRaceState(state: number): Promise<void> {
         if (!this.connectedDevice) {
-            console.warn('[NativeBluetooth] Cannot set race state: Not connected');
-            return;
+            throw new Error('PM5 is not connected');
         }
 
-        console.log('[NativeBluetooth] Setting race state:', state);
+        return this.enqueueCSAFE(async () => {
+          console.log('[NativeBluetooth] Setting race state:', state);
 
-        try {
+          try {
             const frame = buildRaceStateFrame(state);
             assertPM5AcceptedResponse(await this.exchangeCSAFEFrame(frame));
 
             console.log('[NativeBluetooth] Race state set successfully');
-        } catch (e) {
-            console.error('[NativeBluetooth] Failed to set race state:', e);
-            throw e;
-        }
+          } catch (e) {
+              console.error('[NativeBluetooth] Failed to set race state:', e);
+              throw e;
+          }
+        });
     }
 }
 

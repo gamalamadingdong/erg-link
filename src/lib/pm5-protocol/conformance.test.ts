@@ -1,4 +1,4 @@
-import { buildCSAFEFrame, buildRaceStateFrame, buildWorkoutFrames } from './commands';
+import { activeWorkoutSpecToWorkoutConfig, buildCSAFEFrame, buildRaceStateFrame, buildWorkoutFrames } from './commands';
 import {
     buildExtendedCSAFEFrame,
     buildStandardCSAFEFrame,
@@ -412,4 +412,20 @@ test('parses split and end-of-workout notifications', () => {
         restTime: 0,
         averageCalories: 100,
     });
+});
+
+test('attaches RWN rest steps to the preceding PM5 variable work interval', () => {
+    const config = activeWorkoutSpecToWorkoutConfig({
+        _v: 1,
+        type: 'variable_interval',
+        intervals: [
+            { type: 'distance', value: 500 },
+            { type: 'rest', value: 60 },
+            { type: 'time', value: 180 },
+        ],
+    });
+    assert.deepEqual(config.intervals, [
+        { type: 'distance', value: 500, rest: 60 },
+        { type: 'time', value: 180, rest: 0 },
+    ]);
 });

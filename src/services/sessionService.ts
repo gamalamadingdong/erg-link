@@ -1,11 +1,13 @@
 import { supabase } from './supabase';
 import type { Database } from '../types/supabase';
 import type { PM5Data } from './bluetooth.types';
-import { toActiveWorkoutSpec, type ErgLinkUploadMeta } from '../types/ergSession.types';
+import { toActiveWorkoutSpec, type ErgLinkUploadMeta, type PM5ProgrammingReceiptV1 } from '../types/ergSession.types';
 
 type Session = Database['public']['Tables']['erg_sessions']['Row'];
 type Participant = Database['public']['Tables']['erg_session_participants']['Row'];
 type Json = Database['public']['Tables']['workout_logs']['Row']['raw_data'];
+
+const programmingReceipts = new Map<string, PM5ProgrammingReceiptV1>();
 
 const serializeStrokeData = (strokeData: PM5Data[]) => strokeData.map((stroke) => ({
     timestamp: stroke.timestamp,
@@ -86,7 +88,9 @@ export const sessionService = {
         const { error, count } = await supabase
             .from('erg_session_participants')
             .update({
-                data: data as unknown as Database['public']['Tables']['erg_session_participants']['Update']['data'],
+                data: (programmingReceipts.has(participantId)
+                    ? { ...data, pm5_programming: programmingReceipts.get(participantId) }
+                    : data) as unknown as Database['public']['Tables']['erg_session_participants']['Update']['data'],
                 status: 'active' as const,
                 last_heartbeat: new Date().toISOString()
             }, { count: 'exact' })
@@ -94,6 +98,33 @@ export const sessionService = {
 
         if (error) throw error;
         if (count === 0) throw new Error('Participant removed from session');
+    },
+
+    async updateProgrammingReceipt(participantId: string, receipt: PM5ProgrammingReceiptV1): Promise<void> {
+        if (!supabase) return;
+        programmingReceipts.set(participantId, receipt);
+
+        const { data: participant, error: readError } = await supabase
+            .from('erg_session_participants')
+            .select('data')
+            .eq('id', participantId)
+            .maybeSingle();
+        if (readError) throw readError;
+
+        const current = participant?.data && typeof participant.data === 'object' && !Array.isArray(participant.data)
+            ? participant.data as Record<string, unknown>
+            : {};
+        const { error } = await supabase
+            .from('erg_session_participants')
+            .update({
+                data: {
+                    ...current,
+                    pm5_programming: receipt,
+                } as unknown as Database['public']['Tables']['erg_session_participants']['Update']['data'],
+                last_heartbeat: new Date().toISOString(),
+            })
+            .eq('id', participantId);
+        if (error) throw error;
     },
 
     /**
