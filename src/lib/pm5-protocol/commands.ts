@@ -1,6 +1,5 @@
 import {
-    CSAFE_FRAME_START,
-    CSAFE_FRAME_STOP,
+    CSAFE_DEST_ADDR,
     CSAFE_SETPMCFG_CMD,
     CSAFE_PM_SET_WORKOUTTYPE,
     CSAFE_PM_SET_WORKOUTDURATION,
@@ -8,21 +7,24 @@ import {
     CSAFE_PM_SET_SPLITDURATION,
     CSAFE_PM_CONFIGURE_WORKOUT,
     CSAFE_PM_SET_SCREENSTATE,
+    CSAFE_PM_SET_INTERVALTYPE,
+    CSAFE_PM_WORKOUTINTERVALCOUNT,
     CSAFE_PM_SET_RACEOPERATIONTYPE,
     WorkoutType as CSAFEWorkoutType,
     WorkoutDurationType,
     ScreenType,
     ScreenValue,
+    CSAFE_SRC_ADDR,
 } from '../../constants/csafe';
 import type { ActiveWorkoutSpec } from '../../types/ergSession.types';
+import { buildExtendedCSAFEFrame, buildStandardCSAFEFrame } from './frame';
 
 // ============================================================================
 // LOW-LEVEL FRAME CONSTRUCTION
 // ============================================================================
 
 /**
- * Constructs a standard CSAFE frame with command, data, and checksum.
- * Note: Does not currently handle byte-stuffing (rarely needed for simple commands).
+ * Constructs a standard CSAFE frame with command, data, checksum, and byte-stuffing.
  */
 export function buildCSAFEFrame(command: number, data: number[]): Uint8Array {
     const content = [command];
@@ -34,15 +36,7 @@ export function buildCSAFEFrame(command: number, data: number[]): Uint8Array {
 
     content.push(...data);
 
-    let checksum = 0;
-    content.forEach(b => checksum ^= b);
-
-    return new Uint8Array([
-        CSAFE_FRAME_START,
-        ...content,
-        checksum,
-        CSAFE_FRAME_STOP
-    ]);
+    return new Uint8Array(buildStandardCSAFEFrame(content));
 }
 
 /**
@@ -50,20 +44,11 @@ export function buildCSAFEFrame(command: number, data: number[]): Uint8Array {
  * Frame format: [F1, 76, len, ...payload, checksum, F2]
  */
 export function buildProprietaryFrame(payload: number[]): Uint8Array {
-    const commandBytes: number[] = [];
-    commandBytes.push(CSAFE_FRAME_START);
-    commandBytes.push(CSAFE_SETPMCFG_CMD);
-    commandBytes.push(payload.length);
-    payload.forEach(b => commandBytes.push(b));
-
-    let checksum = 0;
-    for (let i = 1; i < commandBytes.length; i++) {
-        checksum = checksum ^ commandBytes[i];
-    }
-    commandBytes.push(checksum);
-    commandBytes.push(CSAFE_FRAME_STOP);
-
-    return new Uint8Array(commandBytes);
+    return new Uint8Array(buildStandardCSAFEFrame([
+        CSAFE_SETPMCFG_CMD,
+        payload.length,
+        ...payload,
+    ]));
 }
 
 // ============================================================================
@@ -157,6 +142,15 @@ export function buildWorkoutFrames(workout: WorkoutConfig): Uint8Array[] {
         }
     }
 
+    if ((workout.type === 'interval_time' || workout.type === 'interval_distance') &&
+        workout.rest !== undefined) {
+        pushPayload8(payload, CSAFE_PM_SET_RESTDURATION);
+        pushPayload8(payload, 0x02);
+        const restSeconds = Math.round(workout.rest);
+        pushPayload8(payload, (restSeconds >> 8) & 0xFF);
+        pushPayload8(payload, restSeconds & 0xFF);
+    }
+
     // Command 3: SET_SPLITDURATION (for fixed workouts)
     if (workout.type === 'fixed_time') {
         pushPayload8(payload, CSAFE_PM_SET_SPLITDURATION);
@@ -200,10 +194,22 @@ function buildVariableIntervalFrames(
         const isLast = i === intervals.length - 1;
         const payload: number[] = [];
 
-        // SET_WORKOUTTYPE (Variable Interval = 8)
-        pushPayload8(payload, CSAFE_PM_SET_WORKOUTTYPE);
+        if (i === 0) {
+            pushPayload8(payload, CSAFE_PM_SET_WORKOUTTYPE);
+            pushPayload8(payload, 0x01);
+            pushPayload8(payload, CSAFEWorkoutType.VariableInterval);
+        }
+
+        pushPayload8(payload, CSAFE_PM_WORKOUTINTERVALCOUNT);
         pushPayload8(payload, 0x01);
-        pushPayload8(payload, CSAFEWorkoutType.VariableInterval);
+        pushPayload8(payload, i);
+
+        if (interval.type === 'rest') {
+            throw new Error('Variable workout intervals must be work intervals with optional rest');
+        }
+        pushPayload8(payload, CSAFE_PM_SET_INTERVALTYPE);
+        pushPayload8(payload, 0x01);
+        pushPayload8(payload, interval.type === 'time' ? 0x00 : 0x01);
 
         // SET_WORKOUTDURATION
         pushPayload8(payload, CSAFE_PM_SET_WORKOUTDURATION);
@@ -257,5 +263,7 @@ export function buildRaceStateFrame(state: number): Uint8Array {
     payload.push(0x01); // byte count
     payload.push(state);
 
-    return buildProprietaryFrame(payload);
+    const contents = [CSAFE_SETPMCFG_CMD, payload.length, ...payload];
+    if (state === 0) return new Uint8Array(buildStandardCSAFEFrame(contents));
+    return new Uint8Array(buildExtendedCSAFEFrame(contents, CSAFE_DEST_ADDR, CSAFE_SRC_ADDR));
 }

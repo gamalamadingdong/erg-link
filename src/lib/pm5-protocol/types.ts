@@ -1,8 +1,8 @@
 /**
  * PM5 Protocol Types and Constants
  * 
- * Based on Concept2 PM CSAFE Communication Definition V0.27
- * See: docs/concept2-pm5-reference/PM5_CSAFE_SPEC.md
+ * Based on Concept2 PM CSAFE Communication Definition V0.34.
+ * See: docs/pm5-csafe-conformance-audit.md
  */
 
 // ============================================================================
@@ -92,6 +92,18 @@ export const PM5_CHARACTERISTICS = {
     CSAFE_TX: 'ce060022-43e5-11e4-916c-0800200c9a66',
 } as const;
 
+/** Read-only C2 Device Information characteristics (service 0x0010). */
+export const PM5_DEVICE_INFO_CHARACTERISTICS = {
+    MODEL_NUMBER: 'ce060011-43e5-11e4-916c-0800200c9a66',
+    SERIAL_NUMBER: 'ce060012-43e5-11e4-916c-0800200c9a66',
+    HARDWARE_REVISION: 'ce060013-43e5-11e4-916c-0800200c9a66',
+    FIRMWARE_REVISION: 'ce060014-43e5-11e4-916c-0800200c9a66',
+    MANUFACTURER_NAME: 'ce060015-43e5-11e4-916c-0800200c9a66',
+    ERG_MACHINE_TYPE: 'ce060016-43e5-11e4-916c-0800200c9a66',
+    ATT_MTU: 'ce060017-43e5-11e4-916c-0800200c9a66',
+    LL_MAX_BYTES: 'ce060018-43e5-11e4-916c-0800200c9a66',
+} as const;
+
 // ============================================================================
 // ROWING STATE ENUMERATIONS
 // ============================================================================
@@ -125,7 +137,8 @@ export const WorkoutType = {
     FIXED_CALORIE_SPLITS: 10,
     FIXED_WATT_MINUTE_SPLITS: 11,
     FIXED_CALS_INTERVAL: 12,
-    NUM: 13,
+    FIXED_WATT_MINUTE_INTERVAL: 13,
+    NUM: 14,
 } as const;
 export type WorkoutTypeType = typeof WorkoutType[keyof typeof WorkoutType];
 
@@ -141,6 +154,7 @@ export const IntervalType = {
     CALORIE_UNDEFINED_REST: 7,
     WATT_MINUTE: 8,
     WATT_MINUTE_UNDEFINED_REST: 9,
+    NONE: 255,
 } as const;
 export type IntervalTypeType = typeof IntervalType[keyof typeof IntervalType];
 
@@ -154,8 +168,8 @@ export const WorkoutState = {
     WORK_DISTANCE_INTERVAL: 5,
     REST_END_TIME: 6,
     REST_END_DISTANCE: 7,
-    TIME_WORKOUT_END: 8,
-    DISTANCE_WORKOUT_END: 9,
+    WORK_TIME_TO_REST: 8,
+    WORK_DISTANCE_TO_REST: 9,
     WORKOUT_END: 10,
     TERMINATE_WORKOUT: 11,
     WORKOUT_LOGGED: 12,
@@ -172,25 +186,40 @@ export type RowingStateType = typeof RowingState[keyof typeof RowingState];
 
 /** Stroke State - current stroke phase */
 export const StrokeState = {
-    WAITING: 0,
-    DRIVE: 1,
-    DWELL: 2,
-    RECOVERY: 3,
+    WAITING_FOR_MINIMUM_SPEED: 0,
+    WAITING_FOR_ACCELERATION: 1,
+    DRIVING: 2,
+    DWELLING: 3,
+    RECOVERY: 4,
 } as const;
 export type StrokeStateType = typeof StrokeState[keyof typeof StrokeState];
 
 /** Erg Machine Type */
 export const ErgMachineType = {
-    STATIC_D: 0,    // Static Model D
-    STATIC_C: 1,    // Static Model C
-    STATIC_A: 2,    // Static Model A
-    STATIC_B: 3,    // Static Model B
-    STATIC_E: 5,    // Static Model E
-    DYNAMIC: 16,    // Dynamic
-    SLIDES: 32,     // Slides
-    SKI_ERG: 64,    // SkiErg
-    BIKE_ERG: 128,  // BikeErg
-    MULTI_ERG: 192, // MultiErg (Row + Ski/Bike)
+    STATIC_D: 0,
+    STATIC_C: 1,
+    STATIC_A: 2,
+    STATIC_B: 3,
+    STATIC_E: 5,
+    STATIC_SIMULATOR: 7,
+    STATIC_DYNAMIC: 8,
+    SLIDES_A: 16,
+    SLIDES_B: 17,
+    SLIDES_C: 18,
+    SLIDES_D: 19,
+    SLIDES_E: 20,
+    LINKED_DYNAMIC: 32,
+    STATIC_DYNO: 64,
+    STATIC_SKI: 128,
+    STATIC_SKI_SIMULATOR: 143,
+    BIKE: 192,
+    BIKE_ARMS: 193,
+    BIKE_NO_ARMS: 194,
+    BIKE_SIMULATOR: 207,
+    MULTI_ERG_ROW: 224,
+    MULTI_ERG_SKI: 225,
+    MULTI_ERG_BIKE: 226,
+    NUM: 227,
 } as const;
 export type ErgMachineTypeType = typeof ErgMachineType[keyof typeof ErgMachineType];
 
@@ -234,6 +263,59 @@ export interface AdditionalStatus2Data {
     splitAvgCalories: number;   // cals/hr
     lastSplitTime: number;      // 0.1 sec resolution
     lastSplitDistance: number;  // meters
+}
+
+export interface StrokeData {
+    elapsedTime: number;
+    distance: number;
+    driveLength: number;
+    driveTime: number;
+    recoveryTime: number;
+    strokeDistance: number;
+    peakDriveForce: number;
+    averageDriveForce: number;
+    workPerStroke: number;
+    strokeCount: number;
+}
+
+export interface SplitIntervalData {
+    elapsedTime: number;
+    distance: number;
+    intervalTime: number;
+    intervalDistance: number;
+    restTime: number;
+    restDistance: number;
+    intervalType: number;
+    intervalNumber: number;
+}
+
+export interface EndWorkoutSummaryData {
+    logDate: number;
+    logTime: number;
+    elapsedTime: number;
+    distance: number;
+    averageStrokeRate: number;
+    endingHeartRate: number;
+    averageHeartRate: number;
+    minHeartRate: number;
+    maxHeartRate: number;
+    averageDragFactor: number;
+    recoveryHeartRate: number;
+    workoutType: number;
+    averagePace: number;
+}
+
+export interface AdditionalEndWorkoutSummaryData {
+    logDate: number;
+    logTime: number;
+    intervalType: number;
+    intervalSize: number;
+    intervalCount: number;
+    totalCalories: number;
+    watts: number;
+    totalRestDistance: number;
+    restTime: number;
+    averageCalories: number;
 }
 
 /** Aggregated PM5 data for application use */
