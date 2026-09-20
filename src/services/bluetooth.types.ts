@@ -44,6 +44,8 @@ export interface PM5Diagnostic {
     attMtu?: number;
     linkLayerMaxBytes?: number;
     negotiatedMtu?: number;
+    controlValueLimit: number;
+
     controlCapabilities?: {
         rx: PM5GATTProperties;
         tx: PM5GATTProperties;

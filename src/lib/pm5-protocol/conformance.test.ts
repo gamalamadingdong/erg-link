@@ -160,21 +160,20 @@ test('aggregates subscribed status characteristics into application units', () =
     assert.equal(data.intervalCount, 4);
 });
 
-test('constructs the documented proprietary fixed-distance command fields', () => {
-    const [frame] = buildWorkoutFrames({
+test('splits fixed-distance commands into complete BLE-safe frames', () => {
+    const frames = buildWorkoutFrames({
         type: 'fixed_distance',
         value: 2_000,
         split: 500,
     });
-
-    assert.deepEqual([...frame], [
-        0xf1, 0x76, 0x18,
+    assert.equal(frames.every((frame) => frame.byteLength <= 20), true);
+    const payload = frames.flatMap((frame) => parseCSAFEFrame(Array.from(frame)).contents.slice(2));
+    assert.deepEqual(payload, [
         0x01, 0x01, 0x03,
         0x03, 0x05, 0x80, 0x00, 0x00, 0x07, 0xd0,
         0x05, 0x05, 0x80, 0x00, 0x00, 0x01, 0xf4,
         0x14, 0x01, 0x01,
         0x13, 0x02, 0x01, 0x01,
-        0x4c, 0xf2,
     ]);
 });
 
@@ -238,22 +237,21 @@ test('uses an extended frame for an enabled race operation', () => {
     );
 });
 
-test('includes fixed-interval rest duration in the proprietary setup frame', () => {
+test('includes fixed-interval rest duration across BLE-safe frames', () => {
     const frames = buildWorkoutFrames({
         type: 'interval_distance',
         value: 500,
         rest: 30,
         repeats: 4,
     });
-    assert.equal(frames.length, 1);
-    assert.deepEqual(Array.from(frames[0]), [
-        0xf1, 0x76, 0x15,
+    assert.equal(frames.every((frame) => frame.byteLength <= 20), true);
+    const payload = frames.flatMap((frame) => parseCSAFEFrame(Array.from(frame)).contents.slice(2));
+    assert.deepEqual(payload, [
         0x01, 0x01, 0x07,
         0x03, 0x05, 0x80, 0x00, 0x00, 0x01, 0xf4,
         0x04, 0x02, 0x00, 0x1e,
         0x14, 0x01, 0x01,
         0x13, 0x02, 0x01, 0x01,
-        0x0a, 0xf2,
     ]);
 });
 
@@ -276,7 +274,7 @@ test('rejects a truncated CSAFE command response', () => {
     assert.throws(() => parseCSAFEResponse(frame), 'Truncated CSAFE command response');
 });
 
-test('uses the official variable-interval count and type command sequence', () => {
+test('packs the official variable-interval command sequence into complete 20-byte frames', () => {
     const frames = buildWorkoutFrames({
         type: 'variable_interval',
         intervals: [
@@ -284,17 +282,15 @@ test('uses the official variable-interval count and type command sequence', () =
             { type: 'time', value: 180, rest: 0 },
         ],
     });
-    assert.equal(frames.length, 2);
-    assert.deepEqual(parseCSAFEFrame(Array.from(frames[0])).contents, [
-        0x76, 0x14,
-        0x01, 0x01, 0x08,
+    assert.equal(frames.every((frame) => frame.byteLength <= 20), true);
+    const payload = frames.flatMap((frame) => parseCSAFEFrame(Array.from(frame)).contents.slice(2));
+    assert.deepEqual(payload, [
         0x18, 0x01, 0x00,
+        0x01, 0x01, 0x08,
         0x17, 0x01, 0x01,
         0x03, 0x05, 0x80, 0x00, 0x00, 0x01, 0xf4,
         0x04, 0x02, 0x00, 0x3c,
-    ]);
-    assert.deepEqual(parseCSAFEFrame(Array.from(frames[1])).contents, [
-        0x76, 0x18,
+        0x14, 0x01, 0x01,
         0x18, 0x01, 0x01,
         0x17, 0x01, 0x00,
         0x03, 0x05, 0x00, 0x00, 0x00, 0x46, 0x50,
@@ -428,4 +424,17 @@ test('attaches RWN rest steps to the preceding PM5 variable work interval', () =
         { type: 'distance', value: 500, rest: 60 },
         { type: 'time', value: 180, rest: 0 },
     ]);
+});
+
+test('maps fixed-interval work length from ActiveWorkoutSpec split_value', () => {
+    const config = activeWorkoutSpecToWorkoutConfig({
+        _v: 1,
+        type: 'interval_distance',
+        split_value: 500,
+        rest: 210,
+        repeats: 8,
+    });
+    assert.equal(config.value, 500);
+    assert.equal(config.rest, 210);
+    assert.equal(config.repeats, 8);
 });

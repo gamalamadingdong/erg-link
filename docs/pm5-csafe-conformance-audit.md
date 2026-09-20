@@ -15,7 +15,7 @@ Do not extract the current implementation as a trusted shared library yet. Reuse
 - BLE telemetry `[██░░░]` Basic statuses only
 - Read-only diagnostics `[████░]` Implemented; PM5 evidence remains
 - Pure CSAFE core `[████░]` Static Revision 0.34 vectors pass
-- Workout programming `[███░░]` Static sequences repaired; PM5 acceptance remains
+- Workout programming `[████░]` Real fixed-distance programming and the first two speed-pyramid intervals/rest transition are proven
 - Completed capture `[█████]` Versioned accumulator proven on a second 100 m hardware run
 - Durable capture storage `[█████]` Shared store contract plus browser IndexedDB and mobile SQLite adapters proven
 
@@ -31,6 +31,12 @@ A read-only Web Bluetooth diagnostic completed successfully on a RowErg PM5:
 This proves discovery, connection and the read-only C2 device-information path on this PM5. The larger negotiated sizes do not yet prove that CSAFE control characteristic `0x0021` accepts values over the documented 20-byte limit.
 
 The public read-only `CSAFE_GETSTATUS_CMD` was then exercised over Web Bluetooth. Firmware `212.000` advertised receive `0x0021` as write/write-without-response and transmit `0x0022` as notify-only. ErgLink subscribed before writing and received valid frames `f1 81 81 f2` and `f1 01 01 f2`: checksums valid, previous-frame status `ok`, PM5 state `ready`, and frame toggle changed as expected. This proves the bounded write → notify → parse path on this PM5 without changing workout state.
+
+## Programming evidence — 2026-09-20
+
+The same PM5/browser path successfully programmed a `2000m` fixed-distance workout. A later connection reported ATT MTU `23`, link-layer maximum `251`, and an effective control-value limit of `20`; this confirmed that link-layer size does not widen the PM control characteristic and that workout commands must remain within the documented 20-byte value limit.
+
+The Pete Plan speed pyramid `250m/1:30r+500m/3:00r+750m/4:30r+1000m/6:00r+750m/4:30r+500m/3:00r+250m/1:30r` was then translated into the official Concept2 variable-interval command order and packed only at complete command boundaries. The real PM5 displayed the first `250m` interval, entered the prescribed `1:30` rest after it was rowed, and then started the `500m` second interval. Reprogramming `2000m` immediately afterward again produced the correct fixed-distance workout. This proves command-aware multi-frame programming for the exercised fixed-distance and initial variable-interval transitions; the remaining pyramid intervals, final prescribed rest, full completion capture, disconnect/retry behavior, and other firmware families remain unproven.
 
 A direct-PM5 **Just Row** smoke then produced `32 m`, `0:19` elapsed, `4:27/500 m`, `43 s/m`, and `18 W` in ErgLink. The Concept2 pace-to-power relationship predicts `18.39 W` at a `4:27` pace; the displayed `18 W` is consistent after rounding. Distance, elapsed time, pace, rate, and power all updated live without a parser or disconnect error. This proves the current basic status subscriptions and unit conversions on this PM5, but does not prove one notification per stroke or completed-workout capture.
 
