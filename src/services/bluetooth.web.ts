@@ -70,7 +70,6 @@ class WebBluetoothService implements BluetoothService {
     private currentCapture: PM5CaptureAccumulator | null = null;
     private lastCSAFEFrameToggle: boolean | undefined;
     private csafeQueue: Promise<void> = Promise.resolve();
-    private controlValueLimit = 20;
 
     async initialize(): Promise<void> {
         // Web Bluetooth doesn't require initialization
@@ -141,7 +140,6 @@ class WebBluetoothService implements BluetoothService {
             await this.subscribeToCharacteristic(rowingService, PM5_CHARACTERISTICS.SPLIT_INTERVAL_DATA);
             await this.subscribeToCharacteristic(rowingService, PM5_CHARACTERISTICS.END_OF_WORKOUT_SUMMARY);
             await this.subscribeToCharacteristic(rowingService, PM5_CHARACTERISTICS.END_OF_WORKOUT_ADDITIONAL_SUMMARY);
-            await this.refreshControlValueLimit();
 
             // Set up disconnection handler
             this.device.addEventListener('gattserverdisconnected', () => {
@@ -189,17 +187,6 @@ class WebBluetoothService implements BluetoothService {
         }
     }
 
-    private async refreshControlValueLimit(): Promise<void> {
-        if (!this.server) return;
-        try {
-            const service = await this.server.getPrimaryService(PM5_SERVICES.C2_DEVICE_INFO);
-            const characteristic = await service.getCharacteristic(PM5_DEVICE_INFO_CHARACTERISTICS.ATT_MTU);
-            const mtu = decodePM5Uint16LE(await characteristic.readValue());
-            this.controlValueLimit = Math.max(20, mtu - 3);
-        } catch (error) {
-            console.warn('[WebBT] Could not read PM5 ATT MTU; retaining 20-byte control limit:', error);
-        }
-    }
 
     private handleCharacteristicData(uuid: string, value: DataView): void {
         const notification: CaptureNotificationEvidence = {
@@ -361,6 +348,8 @@ class WebBluetoothService implements BluetoothService {
         const attMtu = await read('attMtu', PM5_DEVICE_INFO_CHARACTERISTICS.ATT_MTU);
         const linkBytes = await read('linkLayerMaxBytes', PM5_DEVICE_INFO_CHARACTERISTICS.LL_MAX_BYTES);
 
+
+
         let controlCapabilities: PM5Diagnostic['controlCapabilities'];
         try {
             const control = await this.server.getPrimaryService(PM5_SERVICES.PM_CONTROL);
@@ -392,6 +381,7 @@ class WebBluetoothService implements BluetoothService {
             ergMachineType: ergType?.byteLength ? ergType.getUint8(0) : undefined,
             attMtu: attMtu ? decodePM5Uint16LE(attMtu) : undefined,
             linkLayerMaxBytes: linkBytes ? decodePM5Uint16LE(linkBytes) : undefined,
+            controlValueLimit: 20,
             controlCapabilities,
             readErrors,
         };
@@ -412,7 +402,7 @@ class WebBluetoothService implements BluetoothService {
 
     private async exchangeCSAFEFrame(frame: Uint8Array): Promise<number[]> {
         if (!this.server || !this.connected) throw new Error('PM5 is not connected');
-        assertPM5ControlFrameLength(frame, this.controlValueLimit);
+        assertPM5ControlFrameLength(frame);
 
         const service = await this.server.getPrimaryService(PM5_SERVICES.PM_CONTROL);
         const rxChar = await service.getCharacteristic(PM5_CHARACTERISTICS.CSAFE_RX);
@@ -476,6 +466,7 @@ class WebBluetoothService implements BluetoothService {
             }
         }
     }
+
 
     isConnected(): boolean {
         return this.connected;

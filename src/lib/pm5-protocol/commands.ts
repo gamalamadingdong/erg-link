@@ -51,6 +51,37 @@ export function buildProprietaryFrame(payload: number[]): Uint8Array {
     ]));
 }
 
+/** Pack complete proprietary commands into BLE values no larger than 20 bytes. */
+export function buildProprietaryFrames(payload: number[], maxFrameBytes = 20): Uint8Array[] {
+    const commands: number[][] = [];
+    for (let index = 0; index < payload.length;) {
+        const byteCount = payload[index + 1];
+        if (byteCount === undefined || index + 2 + byteCount > payload.length) {
+            throw new Error('Malformed proprietary CSAFE command payload');
+        }
+        commands.push(payload.slice(index, index + 2 + byteCount));
+        index += 2 + byteCount;
+    }
+
+    const frames: Uint8Array[] = [];
+    let current: number[] = [];
+    for (const command of commands) {
+        const candidate = buildProprietaryFrame([...current, ...command]);
+        if (candidate.byteLength <= maxFrameBytes) {
+            current.push(...command);
+            continue;
+        }
+        if (current.length > 0) frames.push(buildProprietaryFrame(current));
+        const single = buildProprietaryFrame(command);
+        if (single.byteLength > maxFrameBytes) {
+            throw new Error(`CSAFE command cannot fit in a ${maxFrameBytes}-byte BLE control value`);
+        }
+        current = [...command];
+    }
+    if (current.length > 0) frames.push(buildProprietaryFrame(current));
+    return frames;
+}
+
 // ============================================================================
 // PAYLOAD HELPERS
 // ============================================================================
@@ -87,6 +118,7 @@ export interface WorkoutConfig {
 }
 
 export function activeWorkoutSpecToWorkoutConfig(workout: ActiveWorkoutSpec): WorkoutConfig {
+    const fixedInterval = workout.type === 'interval_distance' || workout.type === 'interval_time';
     const intervals: NonNullable<WorkoutConfig['intervals']> = [];
     for (const interval of workout.intervals ?? []) {
         if (interval.type === 'rest') {
@@ -102,7 +134,7 @@ export function activeWorkoutSpecToWorkoutConfig(workout: ActiveWorkoutSpec): Wo
     }
     return {
         type: workout.type,
-        value: workout.value,
+        value: workout.value ?? (fixedInterval ? workout.split_value : undefined),
         split: workout.split_value,
         rest: workout.rest,
         repeats: workout.repeats,
@@ -186,32 +218,27 @@ export function buildWorkoutFrames(workout: WorkoutConfig): Uint8Array[] {
     pushPayload8(payload, ScreenType.Workout);
     pushPayload8(payload, ScreenValue.PrepareToRow);
 
-    return [buildProprietaryFrame(payload)];
+    return buildProprietaryFrames(payload);
 }
 
-/**
- * Builds chunked frames for variable interval workouts.
- * Each interval gets its own frame; the last one includes CONFIGURE + SCREEN commands.
- */
+/** Builds the Concept2 variable-interval command sequence and packs complete commands into BLE-safe frames. */
 function buildVariableIntervalFrames(
     intervals: Array<{ type: 'distance' | 'time' | 'rest'; value: number; rest?: number }>
 ): Uint8Array[] {
-    const frames: Uint8Array[] = [];
+    const payload: number[] = [];
 
     for (let i = 0; i < intervals.length; i++) {
         const interval = intervals[i];
-        const isLast = i === intervals.length - 1;
-        const payload: number[] = [];
+
+        pushPayload8(payload, CSAFE_PM_WORKOUTINTERVALCOUNT);
+        pushPayload8(payload, 0x01);
+        pushPayload8(payload, i);
 
         if (i === 0) {
             pushPayload8(payload, CSAFE_PM_SET_WORKOUTTYPE);
             pushPayload8(payload, 0x01);
             pushPayload8(payload, CSAFEWorkoutType.VariableInterval);
         }
-
-        pushPayload8(payload, CSAFE_PM_WORKOUTINTERVALCOUNT);
-        pushPayload8(payload, 0x01);
-        pushPayload8(payload, i);
 
         pushPayload8(payload, CSAFE_PM_SET_INTERVALTYPE);
         pushPayload8(payload, 0x01);
@@ -238,22 +265,17 @@ function buildVariableIntervalFrames(
             pushPayload8(payload, restSec & 0xFF);
         }
 
-        // Last chunk: finalize with CONFIGURE + SCREEN
-        if (isLast) {
-            pushPayload8(payload, CSAFE_PM_CONFIGURE_WORKOUT);
-            pushPayload8(payload, 0x01);
-            pushPayload8(payload, 0x01);
-
-            pushPayload8(payload, CSAFE_PM_SET_SCREENSTATE);
-            pushPayload8(payload, 0x02);
-            pushPayload8(payload, ScreenType.Workout);
-            pushPayload8(payload, ScreenValue.PrepareToRow);
-        }
-
-        frames.push(buildProprietaryFrame(payload));
+        pushPayload8(payload, CSAFE_PM_CONFIGURE_WORKOUT);
+        pushPayload8(payload, 0x01);
+        pushPayload8(payload, 0x01);
     }
 
-    return frames;
+    pushPayload8(payload, CSAFE_PM_SET_SCREENSTATE);
+    pushPayload8(payload, 0x02);
+    pushPayload8(payload, ScreenType.Workout);
+    pushPayload8(payload, ScreenValue.PrepareToRow);
+
+    return buildProprietaryFrames(payload);
 }
 
 // ============================================================================

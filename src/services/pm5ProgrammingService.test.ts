@@ -1,4 +1,5 @@
 import type { ActiveWorkoutSpec, PM5ProgrammingReceiptV1 } from '../types/ergSession.types';
+import { activeWorkoutSpecToWorkoutConfig, buildWorkoutFrames } from '../lib/pm5-protocol/commands';
 import { createDirectPM5ProgrammingRequest, PM5ProgrammingService } from './pm5ProgrammingService';
 
 const assert = {
@@ -100,4 +101,21 @@ await test('translates direct athlete RWN without a coach session', async () => 
     const unsupported = createDirectPM5ProgrammingRequest('v500m/40cal/500m');
     assert.equal(unsupported.mode, 'unsupported');
     assert.equal(unsupported.request, null);
+});
+
+await test('translates the full Pete Plan speed pyramid into BLE-safe PM5 frames', async () => {
+    const pyramid = '250m/1:30r+500m/3:00r+750m/4:30r+1000m/6:00r+750m/4:30r+500m/3:00r+250m/1:30r';
+    const translated = createDirectPM5ProgrammingRequest(pyramid, {
+        requestId: 'pyramid-1',
+        requestedAt: '2026-09-19T18:00:00.000Z',
+    });
+    assert.equal(translated.mode, 'exact');
+    assert.equal(translated.request?.intervals?.length, 14);
+    const config = activeWorkoutSpecToWorkoutConfig(translated.request!);
+    assert.equal(config.intervals?.length, 7);
+    assert.deepEqual(config.intervals?.map((interval) => [interval.value, interval.rest]), [
+        [250, 90], [500, 180], [750, 270], [1000, 360], [750, 270], [500, 180], [250, 90],
+    ]);
+    const frames = buildWorkoutFrames(config);
+    assert.equal(frames.every((frame) => frame.byteLength <= 20), true);
 });

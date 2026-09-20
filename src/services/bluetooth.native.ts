@@ -56,7 +56,6 @@ export class NativeBluetoothService implements BluetoothService {
     private currentCapture: PM5CaptureAccumulator | null = null;
     private lastCSAFEFrameToggle: boolean | undefined;
     private csafeQueue: Promise<void> = Promise.resolve();
-    private controlValueLimit = 20;
 
     async initialize(): Promise<void> {
         try {
@@ -161,7 +160,6 @@ export class NativeBluetoothService implements BluetoothService {
 
             // Subscribe to multiple PM5 characteristics for comprehensive data
             await this.subscribeToCharacteristics(deviceId);
-            await this.refreshControlValueLimit(deviceId);
 
             this.connectionState = 'connected';
             console.log('[NativeBluetooth] Connected and subscribed to notifications');
@@ -176,14 +174,6 @@ export class NativeBluetoothService implements BluetoothService {
     /**
      * Subscribe to all relevant PM5 characteristics
      */
-    private async refreshControlValueLimit(deviceId: string): Promise<void> {
-        try {
-            const mtu = await BleClient.getMtu(deviceId);
-            this.controlValueLimit = Math.max(20, mtu - 3);
-        } catch (error) {
-            console.warn('[NativeBluetooth] Could not read negotiated MTU; retaining 20-byte control limit:', error);
-        }
-    }
 
     private async subscribeToCharacteristics(deviceId: string): Promise<void> {
         const characteristicsToSubscribe = [
@@ -380,6 +370,8 @@ export class NativeBluetoothService implements BluetoothService {
         const attMtu = await read('attMtu', PM5_DEVICE_INFO_CHARACTERISTICS.ATT_MTU);
         const linkBytes = await read('linkLayerMaxBytes', PM5_DEVICE_INFO_CHARACTERISTICS.LL_MAX_BYTES);
 
+
+
         let negotiatedMtu: number | undefined;
         try {
             negotiatedMtu = await BleClient.getMtu(deviceId);
@@ -421,6 +413,7 @@ export class NativeBluetoothService implements BluetoothService {
             attMtu: attMtu ? decodePM5Uint16LE(attMtu) : undefined,
             linkLayerMaxBytes: linkBytes ? decodePM5Uint16LE(linkBytes) : undefined,
             negotiatedMtu,
+            controlValueLimit: 20,
             controlCapabilities,
             readErrors,
         };
@@ -442,7 +435,7 @@ export class NativeBluetoothService implements BluetoothService {
     private async exchangeCSAFEFrame(frame: Uint8Array): Promise<number[]> {
         if (!this.connectedDevice) throw new Error('PM5 is not connected');
         const deviceId = this.connectedDevice.deviceId;
-        assertPM5ControlFrameLength(frame, this.controlValueLimit);
+        assertPM5ControlFrameLength(frame);
 
         const services = await BleClient.getServices(deviceId);
         const control = services.find((service) => service.uuid.toLowerCase() === PM5_SERVICES.PM_CONTROL);
@@ -523,6 +516,7 @@ export class NativeBluetoothService implements BluetoothService {
             }
         }
     }
+
 
     async programWorkout(workout: WorkoutConfig): Promise<void> {
         if (!this.connectedDevice) {
