@@ -1,0 +1,35 @@
+{
+  "name": "@readyall/erglink",
+  "version": "0.1.0",
+  "description": "Shared Concept2 performance-monitor protocol, programming, and capture core",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./pm5": {
+      "types": "./dist/pm5/index.d.ts",
+      "import": "./dist/pm5/index.js"
+    },
+    "./pm5/protocol": {
+      "types": "./dist/pm5/protocol/index.d.ts",
+      "import": "./dist/pm5/protocol/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test src/pm5/protocol/*.test.ts",
+    "prepublishOnly": "npm run test && npm run build"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "~5.9.3"
+  }
+}

@@ -35,7 +35,7 @@ export {
     type EndWorkoutSummaryData,
     type AdditionalEndWorkoutSummaryData,
     type PM5AggregatedData,
-} from './types';
+} from './types.js';
 
 // Export parsers
 export {
@@ -47,10 +47,10 @@ export {
     parseRowingEndWorkoutSummary,
     parseRowingAdditionalEndWorkoutSummary,
     PM5DataAggregator,
-} from './parser';
+} from './parser.js';
 
-export { buildCSAFEFrame, buildProprietaryFrame, buildWorkoutFrames, buildRaceStateFrame } from './commands';
-export type { WorkoutConfig } from './commands';
+export { buildCSAFEFrame, buildProprietaryFrame, buildWorkoutFrames, buildRaceStateFrame } from './commands.js';
+export type { WorkoutConfig } from './commands.js';
 
 export {
     buildExtendedCSAFEFrame,
@@ -58,19 +58,19 @@ export {
     parseCSAFEFrame,
     stuffCSAFEBytes,
     unstuffCSAFEBytes,
-} from './frame';
-export type { ParsedCSAFEFrame } from './frame';
+} from './frame.js';
+export type { ParsedCSAFEFrame } from './frame.js';
 
-export { parseCSAFEResponse } from './response';
+export { parseCSAFEResponse } from './response.js';
 export type {
     CSAFECommandResponse,
     CSAFEResponse,
     CSAFEResponseStatus,
     PreviousFrameStatus,
     StateMachineState,
-} from './response';
+} from './response.js';
 
-export { decodePM5String, decodePM5Uint16LE } from './diagnostic';
+export { decodePM5String, decodePM5Uint16LE } from './diagnostic.js';
 export {
     assertPM5AcceptedResponse,
     assertPM5ControlFrameLength,
@@ -78,10 +78,10 @@ export {
     PM5_BLE_CONTROL_VALUE_LIMIT,
     selectPM5ResponseMode,
     selectPM5WriteMode,
-} from './transport';
-export type { PM5ResponseMode, PM5StatusProbe, PM5WriteMode } from './transport';
+} from './transport.js';
+export type { PM5ResponseMode, PM5StatusProbe, PM5WriteMode } from './transport.js';
 
-export { PM5CaptureAccumulator } from './capture';
+export { PM5CaptureAccumulator } from './capture.js';
 export type {
     CaptureNotificationEvidence,
     CaptureStatus,
@@ -90,4 +90,6 @@ export type {
     NormalizedStroke,
     PM5CompletedCaptureV1,
     RawCaptureNotification,
-} from './capture';
+} from './capture.js';
+
+export * from './csafe.js';

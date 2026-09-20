@@ -3,12 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "description": "PM5 Bluetooth connectivity companion for LogbookCompanion",
   "scripts": {
+    "predev": "npm run build --workspace @readyall/erglink",
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build --workspace @readyall/erglink && tsc -b && vite build",
     "lint": "eslint .",
-    "test:protocol": "tsx --test src/lib/pm5-protocol/*.test.ts src/services/*aptureStore.test.ts src/services/pm5ProgrammingService.test.ts",
+    "test:protocol": "npm run build --workspace @readyall/erglink && npm run test --workspace @readyall/erglink && tsx --test src/services/*aptureStore.test.ts src/services/pm5ProgrammingService.test.ts",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap open ios",
@@ -25,6 +29,7 @@
     "@capacitor/haptics": "^7.0.0",
     "@capacitor/ios": "^7.4.5",
     "@capacitor/preferences": "^7.0.0",
+    "@readyall/erglink": "workspace:*",
     "@readyall/rwn": "^0.2.0",
     "@supabase/supabase-js": "^2.45.0",
     "idb": "^8.0.3",

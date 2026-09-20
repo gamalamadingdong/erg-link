@@ -15,9 +15,8 @@ import {
     ScreenType,
     ScreenValue,
     CSAFE_SRC_ADDR,
-} from '../../constants/csafe';
-import type { ActiveWorkoutSpec } from '../../types/ergSession.types';
-import { buildExtendedCSAFEFrame, buildStandardCSAFEFrame } from './frame';
+} from './csafe.js';
+import { buildExtendedCSAFEFrame, buildStandardCSAFEFrame } from './frame.js';
 
 // ============================================================================
 // LOW-LEVEL FRAME CONSTRUCTION
@@ -117,30 +116,6 @@ export interface WorkoutConfig {
     }>;
 }
 
-export function activeWorkoutSpecToWorkoutConfig(workout: ActiveWorkoutSpec): WorkoutConfig {
-    const fixedInterval = workout.type === 'interval_distance' || workout.type === 'interval_time';
-    const intervals: NonNullable<WorkoutConfig['intervals']> = [];
-    for (const interval of workout.intervals ?? []) {
-        if (interval.type === 'rest') {
-            const previous = intervals.at(-1);
-            if (previous) previous.rest = interval.value;
-            continue;
-        }
-        intervals.push({
-            type: interval.type,
-            value: interval.value,
-            rest: interval.rest ?? 0,
-        });
-    }
-    return {
-        type: workout.type,
-        value: workout.value ?? (fixedInterval ? workout.split_value : undefined),
-        split: workout.split_value,
-        rest: workout.rest,
-        repeats: workout.repeats,
-        intervals: workout.intervals ? intervals : undefined,
-    };
-}
 
 /**
  * Builds CSAFE frames to program a workout on the PM5.

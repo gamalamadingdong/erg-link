@@ -1,4 +1,4 @@
-import type { PM5CompletedCaptureV1 } from '../lib/pm5-protocol/capture';
+import type { PM5CompletedCaptureV1 } from '@readyall/erglink/pm5';
 import {
     acknowledgeStoredCapture,
     beginStoredCaptureUpload,

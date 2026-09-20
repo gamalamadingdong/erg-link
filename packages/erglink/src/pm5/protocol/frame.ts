@@ -4,7 +4,7 @@ import {
     CSAFE_FRAME_START,
     CSAFE_FRAME_STOP,
     CSAFE_FRAME_STUFF,
-} from '../../constants/csafe';
+} from './csafe.js';
 
 export type ParsedCSAFEFrame =
     | { kind: 'standard'; contents: number[] }

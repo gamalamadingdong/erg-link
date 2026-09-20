@@ -31,8 +31,8 @@ import {
     type CaptureNotificationEvidence,
     type PM5StatusProbe,
     type WorkoutConfig,
-} from '../lib/pm5-protocol';
-import { CSAFE_GETSTATUS_CMD } from '../constants/csafe';
+    CSAFE_GETSTATUS_CMD,
+} from '@readyall/erglink/pm5';
 import { mobileSQLiteCaptureStore } from './mobileSQLiteCaptureStore';
 
 export class NativeBluetoothService implements BluetoothService {

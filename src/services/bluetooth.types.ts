@@ -6,15 +6,13 @@
  * - Web: navigator.bluetooth (Chrome, Bluefy)
  * - Native: @capacitor-community/bluetooth-le (iOS, Android)
  */
-import type { WorkoutConfig } from '../lib/pm5-protocol/commands';
-import type { PM5StatusProbe } from '../lib/pm5-protocol/transport';
-import type { PM5CompletedCaptureV1 } from '../lib/pm5-protocol/capture';
+import type { PM5CompletedCaptureV1, PM5StatusProbe, WorkoutConfig } from '@readyall/erglink/pm5';
 import type {
     StrokeData,
     SplitIntervalData,
     EndWorkoutSummaryData,
     AdditionalEndWorkoutSummaryData,
-} from '../lib/pm5-protocol/types';
+} from '@readyall/erglink/pm5';
 
 export interface PM5Device {
     id: string;

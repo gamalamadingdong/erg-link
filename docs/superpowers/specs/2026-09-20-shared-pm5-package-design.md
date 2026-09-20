@@ -1,15 +1,15 @@
-# Shared PM5 Package Architecture
+# Shared ErgLink Package Architecture
 
 Status: Approved architecture direction; implementation not started.
 
 ## Decision
 
-Keep Logbook Companion and ErgLink as separate applications. Use the ErgLink repository as the source repository for a published `@readyall/pm5` package. Both applications consume that package.
+Keep Logbook Companion and ErgLink as separate applications. Use the ErgLink repository as the source repository for a published `@readyall/erglink` package. Both applications consume that package.
 
 - Logbook Companion is the primary athlete product.
 - ErgLink remains the hardware-development harness and optional boathouse/racing client.
 - `@readyall/rwn` remains the canonical workout language and PM5-translation authority.
-- `@readyall/pm5` owns device protocol, transport, programming, and capture behavior.
+- `@readyall/erglink` owns device protocol, transport, programming, and capture behavior.
 
 Do not copy ErgLink source into Logbook Companion, make the coach-session bridge the primary athlete path, or merge the two application repositories.
 
@@ -38,12 +38,12 @@ The existing ErgLink repository becomes an npm workspace while continuing to hos
 ```text
 erg-link/
 ├── packages/
-│   └── pm5/                 # published as @readyall/pm5
-│       ├── src/protocol/
-│       ├── src/programming/
-│       ├── src/capture/
-│       ├── src/transports/
-│       └── src/storage/
+│   └── erglink/             # published as @readyall/erglink
+│       ├── src/pm5/protocol/
+│       ├── src/pm5/programming/
+│       ├── src/pm5/capture/
+│       ├── src/pm5/transports/
+│       └── src/pm5/storage/
 ├── src/                     # ErgLink application and diagnostics
 ├── android/
 ├── ios/
@@ -68,7 +68,7 @@ Owns:
 
 Does not own Bluetooth, PM5 response handling, persistence, or application UI.
 
-### `@readyall/pm5`
+### `@readyall/erglink`
 
 Owns:
 
@@ -107,24 +107,25 @@ Owns:
 - optional boathouse/racing and coach-session behavior;
 - focused real-hardware conformance exercises.
 
-It consumes `@readyall/pm5` rather than importing private package internals.
+It consumes `@readyall/erglink` rather than importing private package internals.
 
 ## Package exports
 
 The intended public surface is split by responsibility so consumers do not import internal files:
 
 ```text
-@readyall/pm5
-@readyall/pm5/protocol
-@readyall/pm5/programming
-@readyall/pm5/capture
-@readyall/pm5/web
-@readyall/pm5/capacitor
-@readyall/pm5/storage/indexeddb
-@readyall/pm5/storage/sqlite
+@readyall/erglink
+@readyall/erglink/pm5
+@readyall/erglink/pm5/protocol
+@readyall/erglink/pm5/programming
+@readyall/erglink/pm5/capture
+@readyall/erglink/pm5/web
+@readyall/erglink/pm5/capacitor
+@readyall/erglink/pm5/storage/indexeddb
+@readyall/erglink/pm5/storage/sqlite
 ```
 
-The root export contains platform-neutral types and common client contracts. Platform exports may declare optional peer dependencies:
+The root export contains device-family-neutral types and common client contracts. PM5 behavior remains explicitly namespaced under `/pm5`; a future PM6 implementation will use `/pm6` only after its protocol and transport differences are understood. Platform exports may declare optional peer dependencies:
 
 - `@capacitor/core` and `@capacitor-community/bluetooth-le` for the Capacitor transport;
 - `@capacitor-community/sqlite` for SQLite;
@@ -157,7 +158,7 @@ LC plan/template/source RWN
         ↓ exact | prompt_only | unsupported
 LC confirmation when required
         ↓
-@readyall/pm5 PM5-native configuration
+@readyall/erglink PM5-native configuration
         ↓
 Capacitor BLE transport
         ↓
@@ -193,11 +194,11 @@ The dependency direction is one way:
 ```text
 @readyall/rwn ───────┐
                      ├── Logbook Companion
-@readyall/pm5 ───────┤
+@readyall/erglink ───────┤
                      └── ErgLink app
 ```
 
-`@readyall/pm5` may depend on shared types from `@readyall/rwn` only if a future device-neutral contract requires it. The initial package accepts PM5-native configuration and therefore does not need an RWN dependency.
+`@readyall/erglink` may depend on shared types from `@readyall/rwn` only if a future device-neutral contract requires it. The initial package accepts PM5-native configuration and therefore does not need an RWN dependency.
 
 Neither shared package may depend on either application.
 
@@ -205,7 +206,7 @@ Neither shared package may depend on either application.
 
 ### Phase 1 — Pure core extraction
 
-Move the existing proven protocol, programming, response, and capture code into `packages/pm5` without behavior changes. Preserve existing byte vectors and hardware-derived regression tests. Make ErgLink consume the workspace package.
+Move the existing proven protocol, programming, response, and capture code into `packages/erglink` without behavior changes. Preserve existing byte vectors and hardware-derived regression tests. Make ErgLink consume the workspace package.
 
 Exit gate: ErgLink tests, lint, build, fixed-distance programming, initial speed-pyramid transitions, and completed capture behave exactly as before extraction.
 
@@ -251,7 +252,7 @@ After mobile proof, decide whether ErgLink remains a deployed boathouse/racing c
 
 ## Release and rollback
 
-- Publish immutable semantic versions of `@readyall/pm5`.
+- Publish immutable semantic versions of `@readyall/erglink`.
 - Keep LC and ErgLink pinned to reviewed versions during hardware validation rather than relying on floating latest versions.
 - A package release does not automatically deploy either application.
 - Rollback is an application dependency-version revert; package releases are never overwritten.

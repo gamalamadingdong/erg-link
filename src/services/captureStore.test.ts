@@ -1,5 +1,5 @@
 import { MemoryCaptureStore } from './captureStore';
-import type { PM5CompletedCaptureV1 } from '../lib/pm5-protocol/capture';
+import type { PM5CompletedCaptureV1 } from '@readyall/erglink/pm5';
 
 const assert = {
     equal(actual: unknown, expected: unknown): void {
