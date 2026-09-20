@@ -1,6 +1,6 @@
 {
   "name": "@readyall/erglink",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared Concept2 performance-monitor protocol, programming, and capture core",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,6 +20,10 @@
     "./pm5/protocol": {
       "types": "./dist/pm5/protocol/index.d.ts",
       "import": "./dist/pm5/protocol/index.js"
+    },
+    "./pm5/capacitor": {
+      "types": "./dist/pm5/capacitor.d.ts",
+      "import": "./dist/pm5/capacitor.js"
     }
   },
   "scripts": {
@@ -28,7 +32,16 @@
     "prepublishOnly": "npm run test && npm run build"
   },
   "license": "MIT",
+  "peerDependencies": {
+    "@capacitor-community/bluetooth-le": "^7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@capacitor-community/bluetooth-le": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@capacitor-community/bluetooth-le": "^7.0.0",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3"
   }
