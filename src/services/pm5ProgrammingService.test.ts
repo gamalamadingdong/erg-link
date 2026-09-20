@@ -1,5 +1,6 @@
 import type { ActiveWorkoutSpec, PM5ProgrammingReceiptV1 } from '../types/ergSession.types';
-import { activeWorkoutSpecToWorkoutConfig, buildWorkoutFrames } from '../lib/pm5-protocol/commands';
+import { buildWorkoutFrames } from '@readyall/erglink/pm5';
+import { activeWorkoutSpecToWorkoutConfig } from './activeWorkoutSpecAdapter';
 import { createDirectPM5ProgrammingRequest, PM5ProgrammingService } from './pm5ProgrammingService';
 
 const assert = {
@@ -97,6 +98,10 @@ await test('translates direct athlete RWN without a coach session', async () => 
     assert.equal(intervals.mode, 'prompt_only');
     assert.equal(intervals.request?.repeats, 8);
     assert.equal(intervals.notes[0].includes('complete 8 reps'), true);
+    const intervalConfig = activeWorkoutSpecToWorkoutConfig(intervals.request!);
+    assert.equal(intervalConfig.value, 500);
+    assert.equal(intervalConfig.rest, 210);
+    assert.equal(intervalConfig.repeats, 8);
 
     const unsupported = createDirectPM5ProgrammingRequest('v500m/40cal/500m');
     assert.equal(unsupported.mode, 'unsupported');

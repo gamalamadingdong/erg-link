@@ -54,7 +54,7 @@ A second 100 m hardware run validated the wired accumulator: capture version `1`
 
 ## Platform and storage boundary
 
-The authoritative convergence design is [Shared PM5 Package Architecture](superpowers/specs/2026-09-20-shared-pm5-package-design.md). The destination architecture is **Logbook Companion mobile processing** backed by a published `@readyall/pm5` package, not a browser-only ErgLink product. The pure protocol, programming, and capture core remains independent of React, Supabase, and any one platform or storage engine; Capacitor, Web Bluetooth, SQLite, and IndexedDB are optional adapters behind package contracts.
+The authoritative convergence design is [Shared ErgLink Package Architecture](superpowers/specs/2026-09-20-shared-pm5-package-design.md). The destination architecture is **Logbook Companion mobile processing** backed by a published `@readyall/erglink` package, not a browser-only ErgLink product. The pure protocol, programming, and capture core remains independent of React, Supabase, and any one platform or storage engine; Capacitor, Web Bluetooth, SQLite, and IndexedDB are optional adapters behind package contracts.
 
 - **Browser ErgLink:** retain as a development harness and possible boathouse-racing client. IndexedDB is appropriate local browser-origin storage for that path.
 - **LC Capacitor mobile:** primary athlete capture path. Use the same capture contract behind a storage interface, with a mobile-durable implementation selected by reviewing the existing Capacitor stack and proven ScheduleBoard patterns rather than assuming IndexedDB is sufficient.

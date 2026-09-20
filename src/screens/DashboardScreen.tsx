@@ -3,7 +3,7 @@ import { useAppStore } from '../store/appStore';
 import { bluetoothService } from '../services/bluetooth';
 import { strokeBuffer } from '../services/strokeBuffer';
 import type { PM5CaptureEvidence, PM5Diagnostic } from '../services/bluetooth.types';
-import type { PM5StatusProbe } from '../lib/pm5-protocol';
+import type { PM5StatusProbe } from '@readyall/erglink/pm5';
 import { createDirectPM5ProgrammingRequest, PM5ProgrammingService } from '../services/pm5ProgrammingService';
 import type { PM5ProgrammingReceiptV1 } from '../types/ergSession.types';
 

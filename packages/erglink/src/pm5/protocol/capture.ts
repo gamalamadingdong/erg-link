@@ -3,7 +3,7 @@ import type {
     EndWorkoutSummaryData,
     SplitIntervalData,
     StrokeData,
-} from './types';
+} from './types.js';
 
 export type CaptureStatus = 'recording' | 'completed' | 'aborted' | 'incomplete_capture';
 

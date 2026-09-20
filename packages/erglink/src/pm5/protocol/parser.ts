@@ -23,7 +23,7 @@ import {
     RowingState,
     StrokeState,
     ErgMachineType,
-} from './types';
+} from './types.js';
 
 // ============================================================================
 // CHARACTERISTIC PARSERS

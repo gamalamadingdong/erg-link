@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { useAppStore } from './store/appStore';
 import { bluetoothService } from './services/bluetooth';
-import { activeWorkoutSpecToWorkoutConfig } from './lib/pm5-protocol/commands';
+import { activeWorkoutSpecToWorkoutConfig } from './services/activeWorkoutSpecAdapter';
 import { toActiveWorkoutSpec } from './types/ergSession.types';
 import { strokeBuffer } from './services/strokeBuffer';
 import { PM5ProgrammingService } from './services/pm5ProgrammingService';

@@ -1,5 +1,5 @@
-import { parseCSAFEResponse, type CSAFEResponse } from './response';
-import { CSAFE_GETSTATUS_CMD } from '../../constants/csafe';
+import { parseCSAFEResponse, type CSAFEResponse } from './response.js';
+import { CSAFE_GETSTATUS_CMD } from './csafe.js';
 
 export const PM5_BLE_CONTROL_VALUE_LIMIT = 20;
 

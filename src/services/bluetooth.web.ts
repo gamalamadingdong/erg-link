@@ -30,8 +30,8 @@ import {
     type CaptureNotificationEvidence,
     type PM5StatusProbe,
     type WorkoutConfig,
-} from '../lib/pm5-protocol';
-import { CSAFE_GETSTATUS_CMD } from '../constants/csafe';
+    CSAFE_GETSTATUS_CMD,
+} from '@readyall/erglink/pm5';
 import { indexedDBCaptureStore } from './indexedDbCaptureStore';
 import type { BluetoothService, PM5CaptureEvidence, PM5Data, PM5Device, PM5Diagnostic, PM5GATTProperties } from './bluetooth.types';
 

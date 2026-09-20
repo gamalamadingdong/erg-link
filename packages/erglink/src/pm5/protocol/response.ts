@@ -1,4 +1,4 @@
-import { parseCSAFEFrame } from './frame';
+import { parseCSAFEFrame } from './frame.js';
 
 export type PreviousFrameStatus = 'ok' | 'reject' | 'bad' | 'not_ready';
 export type StateMachineState =

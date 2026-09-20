@@ -1,5 +1,6 @@
 import { parseRWN, translateWorkoutToPm5, type Pm5TranslationMode } from '@readyall/rwn';
-import { activeWorkoutSpecToWorkoutConfig, type WorkoutConfig } from '../lib/pm5-protocol/commands';
+import type { WorkoutConfig } from '@readyall/erglink/pm5';
+import { activeWorkoutSpecToWorkoutConfig } from './activeWorkoutSpecAdapter';
 import type {
     ActiveWorkoutSpec,
     PM5ProgrammingReceiptV1,

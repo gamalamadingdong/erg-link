@@ -1,4 +1,4 @@
-import { activeWorkoutSpecToWorkoutConfig, buildCSAFEFrame, buildRaceStateFrame, buildWorkoutFrames } from './commands';
+import { buildCSAFEFrame, buildRaceStateFrame, buildWorkoutFrames } from './commands';
 import {
     buildExtendedCSAFEFrame,
     buildStandardCSAFEFrame,
@@ -18,7 +18,7 @@ import {
 } from './parser';
 import { PM5_CHARACTERISTICS } from './types';
 import { ErgMachineType, IntervalType, StrokeState, WorkoutState, WorkoutType } from './types';
-import { CSAFE_GETSTATUS_CMD, CSAFE_PM_SET_RACEOPERATIONTYPE, ScreenValue } from '../../constants/csafe';
+import { CSAFE_GETSTATUS_CMD, CSAFE_PM_SET_RACEOPERATIONTYPE, ScreenValue } from './csafe';
 import { parseCSAFEResponse } from './response';
 import { decodePM5String, decodePM5Uint16LE } from './diagnostic';
 import {
@@ -408,33 +408,4 @@ test('parses split and end-of-workout notifications', () => {
         restTime: 0,
         averageCalories: 100,
     });
-});
-
-test('attaches RWN rest steps to the preceding PM5 variable work interval', () => {
-    const config = activeWorkoutSpecToWorkoutConfig({
-        _v: 1,
-        type: 'variable_interval',
-        intervals: [
-            { type: 'distance', value: 500 },
-            { type: 'rest', value: 60 },
-            { type: 'time', value: 180 },
-        ],
-    });
-    assert.deepEqual(config.intervals, [
-        { type: 'distance', value: 500, rest: 60 },
-        { type: 'time', value: 180, rest: 0 },
-    ]);
-});
-
-test('maps fixed-interval work length from ActiveWorkoutSpec split_value', () => {
-    const config = activeWorkoutSpecToWorkoutConfig({
-        _v: 1,
-        type: 'interval_distance',
-        split_value: 500,
-        rest: 210,
-        repeats: 8,
-    });
-    assert.equal(config.value, 500);
-    assert.equal(config.rest, 210);
-    assert.equal(config.repeats, 8);
 });
