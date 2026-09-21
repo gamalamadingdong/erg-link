@@ -253,6 +253,9 @@ export class PM5CapacitorDriver implements PM5Driver {
                     this.currentCapture = this.newCapture(status.elapsedTime);
                     this.captureArmed = false;
                 }
+                if (active && this.currentCapture?.snapshot().status === 'recording') {
+                    this.currentCapture.ingestGeneralStatus(status, notification);
+                }
             } else if (charUUID === PM5_CHARACTERISTICS.ROWING_ADDITIONAL_STATUS1) {
                 const status = parseRowingAdditionalStatus1(value);
                 if (this.currentCapture?.snapshot().status === 'recording') this.currentCapture.ingestStatus1(status, notification);

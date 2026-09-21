@@ -104,4 +104,11 @@ export type {
     RawCaptureNotification,
 } from './capture.js';
 
+export { PM5_CAPTURE_VIOLATION_CODES, validatePm5Capture } from './validation.js';
+export type {
+    PM5CaptureValidationResult,
+    PM5CaptureViolation,
+    PM5CaptureViolationCode,
+} from './validation.js';
+
 export * from './csafe.js';

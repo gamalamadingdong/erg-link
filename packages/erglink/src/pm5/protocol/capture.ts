@@ -7,6 +7,7 @@ import type {
     AdditionalStrokeData,
     EndWorkoutAdditionalSummary2Data,
     EndWorkoutSummaryData,
+    GeneralStatusData,
     SplitIntervalData,
     StrokeData,
 } from './types.js';
@@ -122,6 +123,10 @@ export interface PM5CompletedCaptureV2 extends PM5CompletedCaptureBase {
     };
     rawAdditionalEndSummary2?: EndWorkoutAdditionalSummary2Data;
     latestAdditionalStatus3?: AdditionalStatus3Data;
+    startState?: {
+        status: GeneralStatusData;
+        evidence: CaptureNotificationEvidence;
+    };
 }
 
 export type PM5CompletedCapture = PM5CompletedCaptureV1 | PM5CompletedCaptureV2;
@@ -210,6 +215,7 @@ export class PM5CaptureAccumulator {
     private additionalEndSummary2: EndWorkoutAdditionalSummary2Data | undefined;
     private additionalEndSummary2Evidence: CaptureNotificationEvidence | undefined;
     private latestAdditionalStatus3: AdditionalStatus3Data | undefined;
+    private startState: PM5CompletedCaptureV2['startState'];
 
     constructor(options: PM5CaptureAccumulatorOptions) {
         if (!options.captureId || Number.isNaN(new Date(options.startedAt).getTime()) || !options.timezone) {
@@ -238,6 +244,15 @@ export class PM5CaptureAccumulator {
         if (this.status !== 'recording' && this.status !== 'completed') {
             throw new Error('PM5 capture is already terminal');
         }
+    }
+
+    ingestGeneralStatus(status: GeneralStatusData, evidence: CaptureNotificationEvidence): void {
+        this.requireRecording();
+        this.preserve(evidence);
+        this.startState ??= {
+            status: { ...status },
+            evidence: { ...evidence, bytes: [...evidence.bytes] },
+        };
     }
 
     ingestStatus1(status: AdditionalStatus1Data, evidence: CaptureNotificationEvidence): void {
@@ -413,6 +428,10 @@ export class PM5CaptureAccumulator {
                 ? { dateValue: logTimestamp.logDate, timeValue: logTimestamp.logTime }
                 : undefined,
             latestAdditionalStatus3: this.latestAdditionalStatus3 ? { ...this.latestAdditionalStatus3 } : undefined,
+            startState: this.startState ? {
+                status: { ...this.startState.status },
+                evidence: { ...this.startState.evidence, bytes: [...this.startState.evidence.bytes] },
+            } : undefined,
         };
     }
 }
