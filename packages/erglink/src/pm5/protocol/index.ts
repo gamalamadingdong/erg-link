@@ -31,9 +31,13 @@ export {
     type AdditionalStatus1Data,
     type AdditionalStatus2Data,
     type StrokeData,
+    type AdditionalStrokeData,
     type SplitIntervalData,
+    type AdditionalSplitIntervalData,
     type EndWorkoutSummaryData,
     type AdditionalEndWorkoutSummaryData,
+    type EndWorkoutAdditionalSummary2Data,
+    type AdditionalStatus3Data,
     type PM5AggregatedData,
 } from './types.js';
 
@@ -43,9 +47,13 @@ export {
     parseRowingAdditionalStatus1,
     parseRowingAdditionalStatus2,
     parseRowingStrokeData,
+    parseRowingAdditionalStrokeData,
     parseRowingSplitIntervalData,
+    parseRowingAdditionalSplitIntervalData,
     parseRowingEndWorkoutSummary,
     parseRowingAdditionalEndWorkoutSummary,
+    parseRowingEndWorkoutAdditionalSummary2,
+    parseRowingAdditionalStatus3,
     PM5DataAggregator,
 } from './parser.js';
 
@@ -87,8 +95,12 @@ export type {
     CaptureStatus,
     CompletedCaptureSummary,
     NormalizedSplit,
+    NormalizedSplitV2,
     NormalizedStroke,
+    NormalizedStrokeV2,
+    PM5CompletedCapture,
     PM5CompletedCaptureV1,
+    PM5CompletedCaptureV2,
     RawCaptureNotification,
 } from './capture.js';
 

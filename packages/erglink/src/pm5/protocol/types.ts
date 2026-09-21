@@ -71,6 +71,9 @@ export const PM5_CHARACTERISTICS = {
     /** Heart Rate Belt Info (6 bytes) */
     HEART_RATE_BELT_INFO: 'ce06003b-43e5-11e4-916c-0800200c9a66',
 
+    /** End of Workout Additional Summary 2 (10 bytes) - verification and machine type */
+    END_OF_WORKOUT_ADDITIONAL_SUMMARY2: 'ce06003c-43e5-11e4-916c-0800200c9a66',
+
     /** Force Curve Data (variable, multiple notifications) */
     FORCE_CURVE_DATA: 'ce06003d-43e5-11e4-916c-0800200c9a66',
 
@@ -278,6 +281,15 @@ export interface StrokeData {
     strokeCount: number;
 }
 
+export interface AdditionalStrokeData {
+    elapsedTime: number;
+    strokePower: number;
+    strokeCalories: number;
+    strokeCount: number;
+    projectedWorkTime: number;
+    projectedWorkDistance: number;
+}
+
 export interface SplitIntervalData {
     elapsedTime: number;
     distance: number;
@@ -287,6 +299,21 @@ export interface SplitIntervalData {
     restDistance: number;
     intervalType: number;
     intervalNumber: number;
+}
+
+export interface AdditionalSplitIntervalData {
+    elapsedTime: number;
+    averageStrokeRate: number;
+    workHeartRate: number;
+    restHeartRate: number;
+    averagePace: number;
+    totalCalories: number;
+    averageCalories: number;
+    speed: number;
+    power: number;
+    averageDragFactor: number;
+    intervalNumber: number;
+    ergMachineType: number;
 }
 
 export interface EndWorkoutSummaryData {
@@ -316,6 +343,29 @@ export interface AdditionalEndWorkoutSummaryData {
     totalRestDistance: number;
     restTime: number;
     averageCalories: number;
+}
+
+export interface EndWorkoutAdditionalSummary2Data {
+    logDate: number;
+    logTime: number;
+    averagePace: number;
+    gameIdentifier: number;
+    workoutVerified: boolean;
+    verificationValue: number;
+    gameScore: number;
+    ergMachineType: number;
+}
+
+export interface AdditionalStatus3Data {
+    operationalState: number;
+    workoutVerificationState: number;
+    screenNumber: number;
+    lastError: number;
+    calibrationMode: number;
+    calibrationState: number;
+    calibrationStatus: number;
+    gameIdentifier: number;
+    gameScore: number;
 }
 
 /** Aggregated PM5 data for application use */
