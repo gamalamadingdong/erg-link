@@ -1,7 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 
 import type { PM5Data } from './bluetooth.types';
-import type { CaptureUploadStatus, StoredCapture } from './captureStore';
+import type { CaptureUploadStatus, StoredCapture } from '@readyall/erglink';
 
 export interface BufferedPM5Notification extends PM5Data {
     sessionId?: string;

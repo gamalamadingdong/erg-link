@@ -1,18 +1,48 @@
-import type { PM5CompletedCaptureV1 } from '@readyall/erglink/pm5';
+import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+
+import type { PM5CompletedCaptureV1 } from '../protocol/capture.js';
 import {
     acknowledgeStoredCapture,
     beginStoredCaptureUpload,
     failStoredCaptureUpload,
     type CaptureAcknowledgement,
     type CaptureStore,
+    type CaptureUploadStatus,
     type StoredCapture,
     updateStoredCapture,
-} from './captureStore';
-import { getErgLinkDB } from './ergLinkDb';
+} from './captureStore.js';
+
+interface CaptureStorageDB extends DBSchema {
+    captures: {
+        key: string;
+        value: StoredCapture;
+        indexes: {
+            'by-upload-status': CaptureUploadStatus;
+            'by-created-at': string;
+        };
+    };
+}
+
+export interface IndexedDBCaptureStoreOptions {
+    databaseName?: string;
+    databaseVersion?: number;
+    databaseProvider?: () => Promise<unknown>;
+}
 
 export class IndexedDBCaptureStore implements CaptureStore {
+    private dbPromise: Promise<IDBPDatabase<CaptureStorageDB>> | undefined;
+    private readonly databaseName: string;
+    private readonly databaseVersion: number;
+    private readonly databaseProvider?: () => Promise<unknown>;
+
+    constructor(options: IndexedDBCaptureStoreOptions = {}) {
+        this.databaseName = options.databaseName ?? 'erg-link-buffer';
+        this.databaseVersion = options.databaseVersion ?? 2;
+        this.databaseProvider = options.databaseProvider;
+    }
+
     async save(capture: PM5CompletedCaptureV1, savedAt: string): Promise<StoredCapture> {
-        const db = await getErgLinkDB();
+        const db = await this.getDb();
         const tx = db.transaction('captures', 'readwrite');
         const existing = await tx.store.get(capture.captureId);
         const record = updateStoredCapture(existing, capture, savedAt);
@@ -22,12 +52,12 @@ export class IndexedDBCaptureStore implements CaptureStore {
     }
 
     async get(captureId: string): Promise<StoredCapture | undefined> {
-        const record = await (await getErgLinkDB()).get('captures', captureId);
+        const record = await (await this.getDb()).get('captures', captureId);
         return record ? structuredClone(record) : undefined;
     }
 
     async listPending(limit: number): Promise<StoredCapture[]> {
-        const db = await getErgLinkDB();
+        const db = await this.getDb();
         const pending = await db.getAllFromIndex('captures', 'by-upload-status', 'pending');
         const failed = await db.getAllFromIndex('captures', 'by-upload-status', 'failed');
         return [...pending, ...failed]
@@ -48,11 +78,26 @@ export class IndexedDBCaptureStore implements CaptureStore {
         return this.update(captureId, (record) => acknowledgeStoredCapture(record, acknowledgement));
     }
 
+    private getDb(): Promise<IDBPDatabase<CaptureStorageDB>> {
+        this.dbPromise ??= this.databaseProvider
+            ? this.databaseProvider().then((database) => database as IDBPDatabase<CaptureStorageDB>)
+            : openDB<CaptureStorageDB>(this.databaseName, this.databaseVersion, {
+                upgrade(db) {
+                    if (!db.objectStoreNames.contains('captures')) {
+                        const captures = db.createObjectStore('captures', { keyPath: 'capture.captureId' });
+                        captures.createIndex('by-upload-status', 'uploadStatus');
+                        captures.createIndex('by-created-at', 'createdAt');
+                    }
+                },
+            });
+        return this.dbPromise;
+    }
+
     private async update(
         captureId: string,
         mutate: (record: StoredCapture) => StoredCapture,
     ): Promise<StoredCapture> {
-        const db = await getErgLinkDB();
+        const db = await this.getDb();
         const tx = db.transaction('captures', 'readwrite');
         const existing = await tx.store.get(captureId);
         if (!existing) throw new Error('PM5 capture was not found');
