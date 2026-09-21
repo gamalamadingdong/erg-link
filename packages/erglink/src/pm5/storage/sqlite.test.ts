@@ -12,13 +12,15 @@ class FakeSQLiteDatabase implements CaptureSQLiteDatabase {
             const json = this.records.get(String(values[0]));
             return { values: json ? [{ record_json: json }] : [] };
         }
+        const uploadingOnly = statement.includes("upload_status = 'uploading'");
         const rows = [...this.records.values()]
             .map((json) => ({ json, record: JSON.parse(json) as { uploadStatus: string; createdAt: string } }))
-            .filter(({ record }) => record.uploadStatus === 'pending' || record.uploadStatus === 'failed')
-            .sort((a, b) => a.record.createdAt.localeCompare(b.record.createdAt))
-            .slice(0, Number(values[0]))
-            .map(({ json }) => ({ record_json: json }));
-        return { values: rows };
+            .filter(({ record }) => uploadingOnly
+                ? record.uploadStatus === 'uploading'
+                : record.uploadStatus === 'pending' || record.uploadStatus === 'failed')
+            .sort((a, b) => a.record.createdAt.localeCompare(b.record.createdAt));
+        const limited = uploadingOnly ? rows : rows.slice(0, Number(values[0]));
+        return { values: limited.map(({ json }) => ({ record_json: json })) };
     }
 
     async run(_statement: string, values: unknown[] = []): Promise<void> {
@@ -59,11 +61,15 @@ if ((await store.beginUpload(capture.captureId, '2026-09-19T12:02:00.000Z')).att
 }
 await store.failUpload(capture.captureId, 'offline', '2026-09-19T12:03:00.000Z');
 await store.beginUpload(capture.captureId, '2026-09-19T12:04:00.000Z');
+if (await store.recoverStaleUploads('2026-09-19T12:05:00.000Z', '2026-09-19T12:05:01.000Z') !== 1) {
+    throw new Error('Expected interrupted SQLite upload recovery');
+}
+await store.beginUpload(capture.captureId, '2026-09-19T12:06:00.000Z');
 const acknowledged = await store.acknowledge(capture.captureId, {
-    acknowledgedAt: '2026-09-19T12:05:00.000Z',
+    acknowledgedAt: '2026-09-19T12:07:00.000Z',
     upstreamWorkoutId: 'lc-workout-1',
 });
-if (acknowledged.uploadStatus !== 'acknowledged' || acknowledged.attemptCount !== 2) {
+if (acknowledged.uploadStatus !== 'acknowledged' || acknowledged.attemptCount !== 3) {
     throw new Error('Expected acknowledged capture after retry');
 }
 

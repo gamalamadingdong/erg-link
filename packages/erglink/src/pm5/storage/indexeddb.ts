@@ -5,6 +5,7 @@ import {
     acknowledgeStoredCapture,
     beginStoredCaptureUpload,
     failStoredCaptureUpload,
+    recoverStoredCaptureUpload,
     type CaptureAcknowledgement,
     type CaptureStore,
     type CaptureUploadStatus,
@@ -64,6 +65,19 @@ export class IndexedDBCaptureStore implements CaptureStore {
             .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
             .slice(0, Math.max(0, limit))
             .map((record) => structuredClone(record));
+    }
+
+    async recoverStaleUploads(staleBefore: string, recoveredAt: string): Promise<number> {
+        const db = await this.getDb();
+        const uploading = await db.getAllFromIndex('captures', 'by-upload-status', 'uploading');
+        const recovered = uploading
+            .map((record) => recoverStoredCaptureUpload(record, staleBefore, recoveredAt))
+            .filter((record): record is StoredCapture => !!record);
+        if (!recovered.length) return 0;
+        const tx = db.transaction('captures', 'readwrite');
+        for (const record of recovered) await tx.store.put(record);
+        await tx.done;
+        return recovered.length;
     }
 
     async beginUpload(captureId: string, attemptedAt: string): Promise<StoredCapture> {

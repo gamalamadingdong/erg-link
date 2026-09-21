@@ -23,6 +23,7 @@ export interface CaptureStore {
     save(capture: PM5CompletedCapture, savedAt: string): Promise<StoredCapture>;
     get(captureId: string): Promise<StoredCapture | undefined>;
     listPending(limit: number): Promise<StoredCapture[]>;
+    recoverStaleUploads(staleBefore: string, recoveredAt: string): Promise<number>;
     beginUpload(captureId: string, attemptedAt: string): Promise<StoredCapture>;
     failUpload(captureId: string, error: string, failedAt: string): Promise<StoredCapture>;
     acknowledge(captureId: string, acknowledgement: CaptureAcknowledgement): Promise<StoredCapture>;
@@ -92,6 +93,19 @@ export function failStoredCaptureUpload(record: StoredCapture, error: string, fa
     };
 }
 
+export function recoverStoredCaptureUpload(
+    record: StoredCapture,
+    staleBefore: string,
+    recoveredAt: string,
+): StoredCapture | undefined {
+    validateInstant(staleBefore);
+    validateInstant(recoveredAt);
+    if (record.uploadStatus !== 'uploading') return undefined;
+    if (record.lastAttemptAt
+        && new Date(record.lastAttemptAt).getTime() >= new Date(staleBefore).getTime()) return undefined;
+    return failStoredCaptureUpload(record, 'Recovered interrupted PM5 capture upload', recoveredAt);
+}
+
 export function acknowledgeStoredCapture(
     record: StoredCapture,
     acknowledgement: CaptureAcknowledgement,
@@ -129,6 +143,17 @@ export class MemoryCaptureStore implements CaptureStore {
             .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
             .slice(0, Math.max(0, limit))
             .map(clone);
+    }
+
+    async recoverStaleUploads(staleBefore: string, recoveredAt: string): Promise<number> {
+        let recovered = 0;
+        for (const [captureId, existing] of this.records) {
+            const record = recoverStoredCaptureUpload(existing, staleBefore, recoveredAt);
+            if (!record) continue;
+            this.records.set(captureId, clone(record));
+            recovered += 1;
+        }
+        return recovered;
     }
 
     async beginUpload(captureId: string, attemptedAt: string): Promise<StoredCapture> {

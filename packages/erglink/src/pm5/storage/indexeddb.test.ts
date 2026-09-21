@@ -43,8 +43,12 @@ if ((await store.listPending(10)).length !== 1) throw new Error('Expected one pe
 await store.beginUpload(capture.captureId, '2026-09-19T16:01:00.000Z');
 await store.failUpload(capture.captureId, 'offline', '2026-09-19T16:01:01.000Z');
 await store.beginUpload(capture.captureId, '2026-09-19T16:02:00.000Z');
+if (await store.recoverStaleUploads('2026-09-19T16:03:00.000Z', '2026-09-19T16:03:01.000Z') !== 1) {
+    throw new Error('Expected interrupted IndexedDB upload recovery');
+}
+await store.beginUpload(capture.captureId, '2026-09-19T16:04:00.000Z');
 await store.acknowledge(capture.captureId, {
-    acknowledgedAt: '2026-09-19T16:02:01.000Z',
+    acknowledgedAt: '2026-09-19T16:04:01.000Z',
     upstreamWorkoutId: 'workout-indexed-1',
 });
 if ((await store.listPending(10)).length !== 0) throw new Error('Expected no pending captures');
