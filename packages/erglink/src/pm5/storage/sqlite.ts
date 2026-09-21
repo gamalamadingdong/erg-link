@@ -1,6 +1,6 @@
 import type { SQLiteDBConnection } from '@capacitor-community/sqlite';
 
-import type { PM5CompletedCaptureV1 } from '@readyall/erglink/pm5';
+import type { PM5CompletedCaptureV1 } from '../protocol/capture.js';
 import {
     acknowledgeStoredCapture,
     beginStoredCaptureUpload,
@@ -9,7 +9,7 @@ import {
     type CaptureStore,
     type StoredCapture,
     updateStoredCapture,
-} from './captureStore';
+} from './captureStore.js';
 
 const DATABASE_NAME = 'erglink-captures';
 const DATABASE_VERSION = 1;

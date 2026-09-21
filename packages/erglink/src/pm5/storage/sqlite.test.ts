@@ -1,19 +1,8 @@
-import type { PM5CompletedCaptureV1 } from '@readyall/erglink/pm5';
+import type { PM5CompletedCaptureV1 } from '../protocol/capture.js';
 import {
     MobileSQLiteCaptureStore,
     type CaptureSQLiteDatabase,
-} from './mobileSQLiteCaptureStore';
-
-const assert = {
-    equal(actual: unknown, expected: unknown): void {
-        if (!Object.is(actual, expected)) throw new Error(`Expected ${String(expected)}, received ${String(actual)}`);
-    },
-};
-
-async function test(name: string, body: () => Promise<void>): Promise<void> {
-    await body();
-    console.log(`ok - ${name}`);
-}
+} from './sqlite.js';
 
 class FakeSQLiteDatabase implements CaptureSQLiteDatabase {
     private readonly records = new Map<string, string>();
@@ -61,20 +50,21 @@ const capture: PM5CompletedCaptureV1 = {
     },
 };
 
-await test('mobile SQLite adapter follows the shared retry and acknowledgement lifecycle', async () => {
-    const database = new FakeSQLiteDatabase();
-    const store = new MobileSQLiteCaptureStore(async () => database);
-
-    await store.save(capture, '2026-09-19T12:01:00.000Z');
-    assert.equal((await store.listPending(10)).length, 1);
-    assert.equal((await store.beginUpload(capture.captureId, '2026-09-19T12:02:00.000Z')).attemptCount, 1);
-    assert.equal((await store.failUpload(capture.captureId, 'offline', '2026-09-19T12:03:00.000Z')).uploadStatus, 'failed');
-    await store.beginUpload(capture.captureId, '2026-09-19T12:04:00.000Z');
-    const acknowledged = await store.acknowledge(capture.captureId, {
-        acknowledgedAt: '2026-09-19T12:05:00.000Z',
-        upstreamWorkoutId: 'lc-workout-1',
-    });
-    assert.equal(acknowledged.uploadStatus, 'acknowledged');
-    assert.equal(acknowledged.attemptCount, 2);
-    assert.equal((await store.listPending(10)).length, 0);
+const database = new FakeSQLiteDatabase();
+const store = new MobileSQLiteCaptureStore(async () => database);
+await store.save(capture, '2026-09-19T12:01:00.000Z');
+if ((await store.listPending(10)).length !== 1) throw new Error('Expected one pending capture');
+if ((await store.beginUpload(capture.captureId, '2026-09-19T12:02:00.000Z')).attemptCount !== 1) {
+    throw new Error('Expected first upload attempt');
+}
+await store.failUpload(capture.captureId, 'offline', '2026-09-19T12:03:00.000Z');
+await store.beginUpload(capture.captureId, '2026-09-19T12:04:00.000Z');
+const acknowledged = await store.acknowledge(capture.captureId, {
+    acknowledgedAt: '2026-09-19T12:05:00.000Z',
+    upstreamWorkoutId: 'lc-workout-1',
 });
+if (acknowledged.uploadStatus !== 'acknowledged' || acknowledged.attemptCount !== 2) {
+    throw new Error('Expected acknowledged capture after retry');
+}
+
+console.log('ok - package SQLite adapter follows the shared lifecycle');

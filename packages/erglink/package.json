@@ -1,7 +1,7 @@
 {
   "name": "@readyall/erglink",
-  "version": "0.2.0",
-  "description": "Shared Concept2 performance-monitor protocol, programming, and capture core",
+  "version": "0.3.0",
+  "description": "Shared Concept2 performance-monitor protocol, programming, capture, and durable storage core",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,24 +24,41 @@
     "./pm5/capacitor": {
       "types": "./dist/pm5/capacitor.d.ts",
       "import": "./dist/pm5/capacitor.js"
+    },
+    "./pm5/storage/indexeddb": {
+      "types": "./dist/pm5/storage/indexeddb.d.ts",
+      "import": "./dist/pm5/storage/indexeddb.js"
+    },
+    "./pm5/storage/sqlite": {
+      "types": "./dist/pm5/storage/sqlite.d.ts",
+      "import": "./dist/pm5/storage/sqlite.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --test src/pm5/protocol/*.test.ts",
+    "test": "tsx --test src/pm5/protocol/*.test.ts src/pm5/storage/*.test.ts",
     "prepublishOnly": "npm run test && npm run build"
   },
   "license": "MIT",
+  "dependencies": {
+    "idb": "^8.0.3"
+  },
   "peerDependencies": {
-    "@capacitor-community/bluetooth-le": "^7.0.0"
+    "@capacitor-community/bluetooth-le": "^7.0.0",
+    "@capacitor-community/sqlite": "^7.0.3"
   },
   "peerDependenciesMeta": {
     "@capacitor-community/bluetooth-le": {
+      "optional": true
+    },
+    "@capacitor-community/sqlite": {
       "optional": true
     }
   },
   "devDependencies": {
     "@capacitor-community/bluetooth-le": "^7.0.0",
+    "@capacitor-community/sqlite": "^7.0.3",
+    "fake-indexeddb": "^6.2.5",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3"
   }

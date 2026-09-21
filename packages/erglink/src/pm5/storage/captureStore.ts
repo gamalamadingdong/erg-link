@@ -1,4 +1,4 @@
-import type { PM5CompletedCaptureV1 } from '@readyall/erglink/pm5';
+import type { PM5CompletedCaptureV1 } from '../protocol/capture.js';
 
 export type CaptureUploadStatus = 'held' | 'pending' | 'uploading' | 'failed' | 'acknowledged';
 

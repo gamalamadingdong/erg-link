@@ -32,8 +32,11 @@ import {
     type WorkoutConfig,
     CSAFE_GETSTATUS_CMD,
 } from '@readyall/erglink/pm5';
-import { indexedDBCaptureStore } from './indexedDbCaptureStore';
+import { IndexedDBCaptureStore } from '@readyall/erglink/pm5/storage/indexeddb';
+import { getErgLinkDB } from './ergLinkDb';
 import type { BluetoothService, PM5CaptureEvidence, PM5Data, PM5Device, PM5Diagnostic, PM5GATTProperties } from './bluetooth.types';
+
+const indexedDBCaptureStore = new IndexedDBCaptureStore({ databaseProvider: getErgLinkDB });
 
 /**
  * All PM5-related service UUIDs for optionalServices
