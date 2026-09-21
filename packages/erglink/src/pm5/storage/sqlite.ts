@@ -1,6 +1,6 @@
 import type { SQLiteDBConnection } from '@capacitor-community/sqlite';
 
-import type { PM5CompletedCaptureV1 } from '../protocol/capture.js';
+import type { PM5CompletedCapture } from '../protocol/capture.js';
 import {
     acknowledgeStoredCapture,
     beginStoredCaptureUpload,
@@ -46,7 +46,7 @@ export class MobileSQLiteCaptureStore implements CaptureStore {
         this.dbProvider = dbProvider ?? (() => this.openDb());
     }
 
-    async save(capture: PM5CompletedCaptureV1, savedAt: string): Promise<StoredCapture> {
+    async save(capture: PM5CompletedCapture, savedAt: string): Promise<StoredCapture> {
         const existing = await this.get(capture.captureId);
         const record = updateStoredCapture(existing, capture, savedAt);
         await this.put(record);

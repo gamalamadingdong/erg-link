@@ -31,20 +31,27 @@ import {
     parsePM5StatusProbe,
     parseCSAFEResponse,
     parseRowingAdditionalEndWorkoutSummary,
+    parseRowingEndWorkoutAdditionalSummary2,
     parseRowingEndWorkoutSummary,
+    parseRowingGeneralStatus,
+    parseRowingAdditionalSplitIntervalData,
     parseRowingSplitIntervalData,
+    parseRowingAdditionalStatus1,
+    parseRowingAdditionalStatus2,
+    parseRowingAdditionalStatus3,
+    parseRowingAdditionalStrokeData,
     parseRowingStrokeData,
     selectPM5ResponseMode,
     selectPM5WriteMode,
     type CaptureNotificationEvidence,
     type PM5StatusProbe,
-    type PM5CompletedCaptureV1,
+    type PM5CompletedCapture,
     type WorkoutConfig,
     CSAFE_GETSTATUS_CMD,
 } from './protocol/index.js';
 
 export interface PM5CapacitorDriverOptions {
-    persistCapture?: (capture: PM5CompletedCaptureV1, savedAt: string) => Promise<void>;
+    persistCapture?: (capture: PM5CompletedCapture, savedAt: string) => Promise<void>;
 }
 
 export class PM5CapacitorDriver implements PM5Driver {
@@ -66,6 +73,7 @@ export class PM5CapacitorDriver implements PM5Driver {
         summaryNotifications: 0,
     };
     private currentCapture: PM5CaptureAccumulator | null = null;
+    private captureArmed = true;
     private lastCSAFEFrameToggle: boolean | undefined;
     private csafeQueue: Promise<void> = Promise.resolve();
     private readonly persistCaptureCallback?: PM5CapacitorDriverOptions['persistCapture'];
@@ -164,6 +172,7 @@ export class PM5CapacitorDriver implements PM5Driver {
             this.dataAggregator.reset();
             this.captureEvidence = { strokeNotifications: 0, splitNotifications: 0, summaryNotifications: 0 };
             this.currentCapture = null;
+            this.captureArmed = true;
             this.lastCSAFEFrameToggle = undefined;
 
             // Connect to the device
@@ -198,9 +207,13 @@ export class PM5CapacitorDriver implements PM5Driver {
             PM5_CHARACTERISTICS.ROWING_ADDITIONAL_STATUS1,  // 0x32 - pace, watts, stroke rate
             PM5_CHARACTERISTICS.ROWING_ADDITIONAL_STATUS2,  // 0x33 - calories, strokes, HR
             PM5_CHARACTERISTICS.STROKE_DATA,
+            PM5_CHARACTERISTICS.ADDITIONAL_STROKE_DATA,
             PM5_CHARACTERISTICS.SPLIT_INTERVAL_DATA,
+            PM5_CHARACTERISTICS.ADDITIONAL_SPLIT_INTERVAL_DATA,
             PM5_CHARACTERISTICS.END_OF_WORKOUT_SUMMARY,
             PM5_CHARACTERISTICS.END_OF_WORKOUT_ADDITIONAL_SUMMARY,
+            PM5_CHARACTERISTICS.END_OF_WORKOUT_ADDITIONAL_SUMMARY2,
+            PM5_CHARACTERISTICS.ROWING_ADDITIONAL_STATUS3,
         ];
 
         for (const charUUID of characteristicsToSubscribe) {
@@ -230,33 +243,75 @@ export class PM5CapacitorDriver implements PM5Driver {
                 receivedAt: new Date().toISOString(),
                 bytes: Array.from(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)),
             };
-            if (charUUID === PM5_CHARACTERISTICS.STROKE_DATA) {
+            if (charUUID === PM5_CHARACTERISTICS.ROWING_GENERAL_STATUS) {
+                const status = parseRowingGeneralStatus(value);
+                const current = this.currentCapture?.snapshot();
+                const active = status.workoutState >= 1 && status.workoutState <= 9;
+                const terminal = status.workoutState === 0 || status.workoutState >= 10;
+                if (terminal && current && current.status !== 'recording') this.captureArmed = true;
+                if (active && this.captureArmed && (!current || current.status !== 'recording')) {
+                    this.currentCapture = this.newCapture(status.elapsedTime);
+                    this.captureArmed = false;
+                }
+            } else if (charUUID === PM5_CHARACTERISTICS.ROWING_ADDITIONAL_STATUS1) {
+                const status = parseRowingAdditionalStatus1(value);
+                if (this.currentCapture?.snapshot().status === 'recording') this.currentCapture.ingestStatus1(status, notification);
+            } else if (charUUID === PM5_CHARACTERISTICS.ROWING_ADDITIONAL_STATUS2) {
+                const status = parseRowingAdditionalStatus2(value);
+                if (this.currentCapture?.snapshot().status === 'recording') this.currentCapture.ingestStatus2(status, notification);
+            } else if (charUUID === PM5_CHARACTERISTICS.STROKE_DATA) {
                 this.captureEvidence.strokeNotifications += 1;
                 const stroke = parseRowingStrokeData(value);
                 this.captureEvidence.latestStroke = stroke;
-                const current = this.currentCapture?.snapshot();
-                if (!this.currentCapture || current?.status !== 'recording') this.currentCapture = this.newCapture(stroke.elapsedTime);
-                this.currentCapture.ingestStroke(stroke, notification);
+                let current = this.currentCapture?.snapshot();
+                if (!current) {
+                    this.currentCapture = this.newCapture(stroke.elapsedTime);
+                    this.captureArmed = false;
+                    current = this.currentCapture.snapshot();
+                }
+                if (current.status === 'recording' || current.status === 'completed') {
+                    this.currentCapture?.ingestStroke(stroke, notification);
+                    void this.persistTerminalCapture();
+                }
+            } else if (charUUID === PM5_CHARACTERISTICS.ADDITIONAL_STROKE_DATA) {
+                if (this.currentCapture?.snapshot().status === 'recording' || this.currentCapture?.snapshot().status === 'completed') {
+                    this.currentCapture.ingestAdditionalStroke(parseRowingAdditionalStrokeData(value), notification);
+                    void this.persistTerminalCapture();
+                }
             } else if (charUUID === PM5_CHARACTERISTICS.SPLIT_INTERVAL_DATA) {
                 this.captureEvidence.splitNotifications += 1;
                 const split = parseRowingSplitIntervalData(value);
                 this.captureEvidence.latestSplit = split;
-                if (!this.currentCapture) this.currentCapture = this.newCapture(split.elapsedTime);
-                this.currentCapture.ingestSplit(split, notification);
+                const current = this.currentCapture?.snapshot();
+                if (current?.status === 'recording' || current?.status === 'completed') {
+                    this.currentCapture?.ingestSplit(split, notification);
+                    void this.persistTerminalCapture();
+                }
+            } else if (charUUID === PM5_CHARACTERISTICS.ADDITIONAL_SPLIT_INTERVAL_DATA) {
+                if (this.currentCapture?.snapshot().status === 'recording' || this.currentCapture?.snapshot().status === 'completed') {
+                    this.currentCapture.ingestAdditionalSplit(parseRowingAdditionalSplitIntervalData(value), notification);
+                    void this.persistTerminalCapture();
+                }
             } else if (charUUID === PM5_CHARACTERISTICS.END_OF_WORKOUT_SUMMARY) {
                 this.captureEvidence.summaryNotifications += 1;
                 const summary = parseRowingEndWorkoutSummary(value);
                 this.captureEvidence.latestSummary = summary;
-                if (!this.currentCapture) this.currentCapture = this.newCapture(summary.elapsedTime);
-                this.currentCapture.ingestEndSummary(summary, notification);
+                this.currentCapture?.ingestEndSummary(summary, notification);
                 void this.persistTerminalCapture();
             } else if (charUUID === PM5_CHARACTERISTICS.END_OF_WORKOUT_ADDITIONAL_SUMMARY) {
                 this.captureEvidence.summaryNotifications += 1;
                 const summary = parseRowingAdditionalEndWorkoutSummary(value);
                 this.captureEvidence.latestAdditionalSummary = summary;
-                if (!this.currentCapture) this.currentCapture = this.newCapture(0);
-                this.currentCapture.ingestAdditionalEndSummary(summary, notification);
+                this.currentCapture?.ingestAdditionalEndSummary(summary, notification);
                 void this.persistTerminalCapture();
+            } else if (charUUID === PM5_CHARACTERISTICS.END_OF_WORKOUT_ADDITIONAL_SUMMARY2) {
+                this.currentCapture?.ingestAdditionalEndSummary2(parseRowingEndWorkoutAdditionalSummary2(value), notification);
+                void this.persistTerminalCapture();
+            } else if (charUUID === PM5_CHARACTERISTICS.ROWING_ADDITIONAL_STATUS3) {
+                if (this.currentCapture?.snapshot().status === 'recording' || this.currentCapture?.snapshot().status === 'completed') {
+                    this.currentCapture.ingestAdditionalStatus3(parseRowingAdditionalStatus3(value), notification);
+                    void this.persistTerminalCapture();
+                }
             }
 
             // Feed data to the aggregator

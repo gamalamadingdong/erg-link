@@ -13,9 +13,13 @@ import {
     type AdditionalStatus1Data,
     type AdditionalStatus2Data,
     type StrokeData,
+    type AdditionalStrokeData,
     type SplitIntervalData,
+    type AdditionalSplitIntervalData,
     type EndWorkoutSummaryData,
     type AdditionalEndWorkoutSummaryData,
+    type EndWorkoutAdditionalSummary2Data,
+    type AdditionalStatus3Data,
     type PM5AggregatedData,
     WorkoutType,
     IntervalType,
@@ -126,6 +130,17 @@ export function parseRowingStrokeData(data: DataView): StrokeData {
     };
 }
 
+export function parseRowingAdditionalStrokeData(data: DataView): AdditionalStrokeData {
+    return {
+        elapsedTime: getUint24LE(data, 0),
+        strokePower: getUint16LE(data, 3),
+        strokeCalories: getUint16LE(data, 5),
+        strokeCount: getUint16LE(data, 7),
+        projectedWorkTime: getUint24LE(data, 9),
+        projectedWorkDistance: getUint24LE(data, 12),
+    };
+}
+
 export function parseRowingSplitIntervalData(data: DataView): SplitIntervalData {
     return {
         elapsedTime: getUint24LE(data, 0),
@@ -136,6 +151,23 @@ export function parseRowingSplitIntervalData(data: DataView): SplitIntervalData 
         restDistance: getUint16LE(data, 14),
         intervalType: data.getUint8(16),
         intervalNumber: data.getUint8(17),
+    };
+}
+
+export function parseRowingAdditionalSplitIntervalData(data: DataView): AdditionalSplitIntervalData {
+    return {
+        elapsedTime: getUint24LE(data, 0),
+        averageStrokeRate: data.getUint8(3),
+        workHeartRate: data.getUint8(4),
+        restHeartRate: data.getUint8(5),
+        averagePace: getUint16LE(data, 6),
+        totalCalories: getUint16LE(data, 8),
+        averageCalories: getUint16LE(data, 10),
+        speed: getUint16LE(data, 12),
+        power: getUint16LE(data, 14),
+        averageDragFactor: data.getUint8(16),
+        intervalNumber: data.getUint8(17),
+        ergMachineType: data.getUint8(18),
     };
 }
 
@@ -169,6 +201,34 @@ export function parseRowingAdditionalEndWorkoutSummary(data: DataView): Addition
         totalRestDistance: getUint24LE(data, 12),
         restTime: getUint16LE(data, 15),
         averageCalories: getUint16LE(data, 17),
+    };
+}
+
+export function parseRowingEndWorkoutAdditionalSummary2(data: DataView): EndWorkoutAdditionalSummary2Data {
+    const verificationValue = data.getUint8(6);
+    return {
+        logDate: getUint16LE(data, 0),
+        logTime: getUint16LE(data, 2),
+        averagePace: getUint16LE(data, 4),
+        gameIdentifier: verificationValue & 0x0f,
+        workoutVerified: (verificationValue & 0xf0) !== 0,
+        verificationValue,
+        gameScore: getUint16LE(data, 7),
+        ergMachineType: data.getUint8(9),
+    };
+}
+
+export function parseRowingAdditionalStatus3(data: DataView): AdditionalStatus3Data {
+    return {
+        operationalState: data.getUint8(0),
+        workoutVerificationState: data.getUint8(1),
+        screenNumber: getUint16LE(data, 2),
+        lastError: getUint16LE(data, 4),
+        calibrationMode: data.getUint8(6),
+        calibrationState: data.getUint8(7),
+        calibrationStatus: data.getUint8(8),
+        gameIdentifier: data.getUint8(9),
+        gameScore: getUint16LE(data, 10),
     };
 }
 

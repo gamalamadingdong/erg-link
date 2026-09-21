@@ -1,6 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 
-import type { PM5CompletedCaptureV1 } from '../protocol/capture.js';
+import type { PM5CompletedCapture } from '../protocol/capture.js';
 import {
     acknowledgeStoredCapture,
     beginStoredCaptureUpload,
@@ -41,7 +41,7 @@ export class IndexedDBCaptureStore implements CaptureStore {
         this.databaseProvider = options.databaseProvider;
     }
 
-    async save(capture: PM5CompletedCaptureV1, savedAt: string): Promise<StoredCapture> {
+    async save(capture: PM5CompletedCapture, savedAt: string): Promise<StoredCapture> {
         const db = await this.getDb();
         const tx = db.transaction('captures', 'readwrite');
         const existing = await tx.store.get(capture.captureId);

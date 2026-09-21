@@ -1,9 +1,9 @@
-import type { PM5CompletedCaptureV1 } from '../protocol/capture.js';
+import type { PM5CompletedCapture } from '../protocol/capture.js';
 
 export type CaptureUploadStatus = 'held' | 'pending' | 'uploading' | 'failed' | 'acknowledged';
 
 export interface StoredCapture {
-    capture: PM5CompletedCaptureV1;
+    capture: PM5CompletedCapture;
     uploadStatus: CaptureUploadStatus;
     attemptCount: number;
     createdAt: string;
@@ -20,7 +20,7 @@ export interface CaptureAcknowledgement {
 }
 
 export interface CaptureStore {
-    save(capture: PM5CompletedCaptureV1, savedAt: string): Promise<StoredCapture>;
+    save(capture: PM5CompletedCapture, savedAt: string): Promise<StoredCapture>;
     get(captureId: string): Promise<StoredCapture | undefined>;
     listPending(limit: number): Promise<StoredCapture[]>;
     beginUpload(captureId: string, attemptedAt: string): Promise<StoredCapture>;
@@ -36,7 +36,7 @@ function clone(record: StoredCapture): StoredCapture {
     return structuredClone(record);
 }
 
-export function createStoredCapture(capture: PM5CompletedCaptureV1, savedAt: string): StoredCapture {
+export function createStoredCapture(capture: PM5CompletedCapture, savedAt: string): StoredCapture {
     validateInstant(savedAt);
     return {
         capture: structuredClone(capture),
@@ -49,7 +49,7 @@ export function createStoredCapture(capture: PM5CompletedCaptureV1, savedAt: str
 
 export function updateStoredCapture(
     existing: StoredCapture | undefined,
-    capture: PM5CompletedCaptureV1,
+    capture: PM5CompletedCapture,
     savedAt: string,
 ): StoredCapture {
     if (!existing) return createStoredCapture(capture, savedAt);
@@ -112,7 +112,7 @@ export function acknowledgeStoredCapture(
 export class MemoryCaptureStore implements CaptureStore {
     private readonly records = new Map<string, StoredCapture>();
 
-    async save(capture: PM5CompletedCaptureV1, savedAt: string): Promise<StoredCapture> {
+    async save(capture: PM5CompletedCapture, savedAt: string): Promise<StoredCapture> {
         const record = updateStoredCapture(this.records.get(capture.captureId), capture, savedAt);
         this.records.set(capture.captureId, clone(record));
         return clone(record);

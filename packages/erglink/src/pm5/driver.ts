@@ -2,7 +2,7 @@ import type { ErgMonitorDevice, ErgMonitorDriver } from '../contracts.js';
 import type {
     AdditionalEndWorkoutSummaryData,
     EndWorkoutSummaryData,
-    PM5CompletedCaptureV1,
+    PM5CompletedCapture,
     PM5StatusProbe,
     SplitIntervalData,
     StrokeData,
@@ -64,7 +64,7 @@ export interface PM5CaptureEvidence {
     latestSplit?: SplitIntervalData;
     latestSummary?: EndWorkoutSummaryData;
     latestAdditionalSummary?: AdditionalEndWorkoutSummaryData;
-    capture?: PM5CompletedCaptureV1;
+    capture?: PM5CompletedCapture;
 }
 
 export interface PM5Driver extends ErgMonitorDriver<

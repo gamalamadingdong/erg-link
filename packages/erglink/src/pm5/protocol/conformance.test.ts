@@ -12,9 +12,13 @@ import {
     parseRowingAdditionalStatus2,
     parseRowingGeneralStatus,
     parseRowingStrokeData,
+    parseRowingAdditionalStrokeData,
     parseRowingSplitIntervalData,
+    parseRowingAdditionalSplitIntervalData,
     parseRowingEndWorkoutSummary,
     parseRowingAdditionalEndWorkoutSummary,
+    parseRowingEndWorkoutAdditionalSummary2,
+    parseRowingAdditionalStatus3,
 } from './parser';
 import { PM5_CHARACTERISTICS } from './types';
 import { ErgMachineType, IntervalType, StrokeState, WorkoutState, WorkoutType } from './types';
@@ -356,6 +360,37 @@ test('parses an actual rowing stroke notification', () => {
         averageDriveForce: 700,
         workPerStroke: 500,
         strokeCount: 12,
+    });
+});
+
+test('parses capture-v2 supplementary characteristics from byte vectors', () => {
+    assert.deepEqual(parseRowingAdditionalStrokeData(view([
+        0xd2, 0x04, 0x00, 0xfa, 0x00, 0x84, 0x03, 12, 0,
+        0x78, 0x56, 0x34, 0x40, 0xe2, 0x01,
+    ])), {
+        elapsedTime: 1234, strokePower: 250, strokeCalories: 900, strokeCount: 12,
+        projectedWorkTime: 0x345678, projectedWorkDistance: 123456,
+    });
+    assert.deepEqual(parseRowingAdditionalSplitIntervalData(view([
+        0xd2, 0x04, 0x00, 28, 150, 120, 0x64, 0x05, 24, 0,
+        0x20, 0x03, 0xe1, 0x10, 0xfa, 0x00, 115, 3, 0,
+    ])), {
+        elapsedTime: 1234, averageStrokeRate: 28, workHeartRate: 150, restHeartRate: 120,
+        averagePace: 1380, totalCalories: 24, averageCalories: 800, speed: 4321,
+        power: 250, averageDragFactor: 115, intervalNumber: 3, ergMachineType: 0,
+    });
+    assert.deepEqual(parseRowingEndWorkoutAdditionalSummary2(view([
+        0x34, 0x12, 0x78, 0x56, 0x64, 0x05, 0xa3, 0x2a, 0x00, 0,
+    ])), {
+        logDate: 0x1234, logTime: 0x5678, averagePace: 1380, gameIdentifier: 3,
+        workoutVerified: true, verificationValue: 0xa3, gameScore: 42, ergMachineType: 0,
+    });
+    assert.deepEqual(parseRowingAdditionalStatus3(view([
+        5, 2, 0x34, 0x12, 0x78, 0x56, 1, 2, 3, 4, 0x2a, 0x00,
+    ])), {
+        operationalState: 5, workoutVerificationState: 2, screenNumber: 0x1234,
+        lastError: 0x5678, calibrationMode: 1, calibrationState: 2,
+        calibrationStatus: 3, gameIdentifier: 4, gameScore: 42,
     });
 });
 
