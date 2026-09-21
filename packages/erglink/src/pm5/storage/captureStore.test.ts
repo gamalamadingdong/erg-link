@@ -62,6 +62,10 @@ test('saves completed captures as pending and lists them in stable order', async
     assert.deepEqual(pending.map((record) => record.capture.captureId), ['capture-a', 'capture-b']);
     assert.equal(pending[0].uploadStatus, 'pending');
     assert.equal(pending[0].attemptCount, 0);
+    assert.deepEqual(
+        (await store.listPending(1, 1)).map((record) => record.capture.captureId),
+        ['capture-b'],
+    );
 });
 
 test('persists retry state without changing capture identity', async () => {
@@ -106,6 +110,17 @@ test('acknowledges upstream persistence and makes the capture immutable', async 
     assert.equal(record?.uploadStatus, 'acknowledged');
     assert.equal(record?.upstreamWorkoutId, 'workout-1');
     assert.equal((await store.listPending(10)).length, 0);
+    const enriched = completedCapture('capture-1');
+    enriched.rawNotifications.push({
+        sequence: 1,
+        characteristic: '0x0036',
+        receivedAt: '2026-09-19T16:01:03.000Z',
+        bytes: [1, 2, 3],
+    });
+    const enrichedRecord = await store.enrichAcknowledged(enriched, '2026-09-19T16:01:04.000Z');
+    assert.equal(enrichedRecord.uploadStatus, 'acknowledged');
+    assert.equal(enrichedRecord.upstreamWorkoutId, 'workout-1');
+    assert.equal(enrichedRecord.capture.rawNotifications.length, 1);
     await assert.throwsAsync(
         () => store.save(completedCapture('capture-1'), '2026-09-19T16:03:00.000Z'),
         'Acknowledged PM5 capture is immutable',

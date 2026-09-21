@@ -22,8 +22,9 @@ export interface CaptureAcknowledgement {
 export interface CaptureStore {
     save(capture: PM5CompletedCapture, savedAt: string): Promise<StoredCapture>;
     get(captureId: string): Promise<StoredCapture | undefined>;
-    listPending(limit: number): Promise<StoredCapture[]>;
+    listPending(limit: number, offset?: number): Promise<StoredCapture[]>;
     recoverStaleUploads(staleBefore: string, recoveredAt: string): Promise<number>;
+    enrichAcknowledged(capture: PM5CompletedCapture, enrichedAt: string): Promise<StoredCapture>;
     beginUpload(captureId: string, attemptedAt: string): Promise<StoredCapture>;
     failUpload(captureId: string, error: string, failedAt: string): Promise<StoredCapture>;
     acknowledge(captureId: string, acknowledgement: CaptureAcknowledgement): Promise<StoredCapture>;
@@ -123,6 +124,34 @@ export function acknowledgeStoredCapture(
     };
 }
 
+export function enrichAcknowledgedStoredCapture(
+    existing: StoredCapture,
+    capture: PM5CompletedCapture,
+    enrichedAt: string,
+): StoredCapture {
+    if (existing.uploadStatus !== 'acknowledged') throw new Error('PM5 capture is not acknowledged');
+    if (capture.captureId !== existing.capture.captureId
+        || capture.captureVersion !== existing.capture.captureVersion
+        || capture.status !== 'completed') {
+        throw new Error('Acknowledged PM5 capture identity is immutable');
+    }
+    if (capture.rawNotifications.length < existing.capture.rawNotifications.length) {
+        throw new Error('Acknowledged PM5 capture evidence cannot be removed');
+    }
+    for (let index = 0; index < existing.capture.rawNotifications.length; index += 1) {
+        if (JSON.stringify(capture.rawNotifications[index])
+            !== JSON.stringify(existing.capture.rawNotifications[index])) {
+            throw new Error('Acknowledged PM5 capture evidence must be append-only');
+        }
+    }
+    validateInstant(enrichedAt);
+    return {
+        ...existing,
+        capture: structuredClone(capture),
+        updatedAt: enrichedAt,
+    };
+}
+
 export class MemoryCaptureStore implements CaptureStore {
     private readonly records = new Map<string, StoredCapture>();
 
@@ -137,11 +166,11 @@ export class MemoryCaptureStore implements CaptureStore {
         return record ? clone(record) : undefined;
     }
 
-    async listPending(limit: number): Promise<StoredCapture[]> {
+    async listPending(limit: number, offset = 0): Promise<StoredCapture[]> {
         return [...this.records.values()]
             .filter((record) => record.uploadStatus === 'pending' || record.uploadStatus === 'failed')
             .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
-            .slice(0, Math.max(0, limit))
+            .slice(Math.max(0, offset), Math.max(0, offset) + Math.max(0, limit))
             .map(clone);
     }
 
@@ -154,6 +183,14 @@ export class MemoryCaptureStore implements CaptureStore {
             recovered += 1;
         }
         return recovered;
+    }
+
+    async enrichAcknowledged(capture: PM5CompletedCapture, enrichedAt: string): Promise<StoredCapture> {
+        const existing = this.records.get(capture.captureId);
+        if (!existing) throw new Error('PM5 capture was not found');
+        const record = enrichAcknowledgedStoredCapture(existing, capture, enrichedAt);
+        this.records.set(capture.captureId, clone(record));
+        return clone(record);
     }
 
     async beginUpload(captureId: string, attemptedAt: string): Promise<StoredCapture> {

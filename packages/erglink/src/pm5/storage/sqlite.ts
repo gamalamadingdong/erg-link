@@ -6,6 +6,7 @@ import {
     beginStoredCaptureUpload,
     failStoredCaptureUpload,
     recoverStoredCaptureUpload,
+    enrichAcknowledgedStoredCapture,
     type CaptureAcknowledgement,
     type CaptureStore,
     type StoredCapture,
@@ -65,14 +66,14 @@ export class MobileSQLiteCaptureStore implements CaptureStore {
         return record ? structuredClone(record) : undefined;
     }
 
-    async listPending(limit: number): Promise<StoredCapture[]> {
+    async listPending(limit: number, offset = 0): Promise<StoredCapture[]> {
         const db = await this.getDb();
         const result = await db.query(
             `SELECT record_json FROM pm5_captures
              WHERE upload_status IN ('pending', 'failed')
              ORDER BY created_at ASC
-             LIMIT ?`,
-            [Math.max(0, limit)],
+             LIMIT ? OFFSET ?`,
+            [Math.max(0, limit), Math.max(0, offset)],
         );
         return ((result.values ?? []) as CaptureRow[])
             .map(parseRecord)
@@ -92,6 +93,10 @@ export class MobileSQLiteCaptureStore implements CaptureStore {
             .filter((record): record is StoredCapture => !!record);
         for (const record of recovered) await this.put(record);
         return recovered.length;
+    }
+
+    async enrichAcknowledged(capture: PM5CompletedCapture, enrichedAt: string): Promise<StoredCapture> {
+        return this.update(capture.captureId, (record) => enrichAcknowledgedStoredCapture(record, capture, enrichedAt));
     }
 
     async beginUpload(captureId: string, attemptedAt: string): Promise<StoredCapture> {
