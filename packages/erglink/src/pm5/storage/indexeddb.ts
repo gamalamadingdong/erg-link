@@ -6,6 +6,7 @@ import {
     beginStoredCaptureUpload,
     failStoredCaptureUpload,
     recoverStoredCaptureUpload,
+    enrichAcknowledgedStoredCapture,
     type CaptureAcknowledgement,
     type CaptureStore,
     type CaptureUploadStatus,
@@ -57,13 +58,13 @@ export class IndexedDBCaptureStore implements CaptureStore {
         return record ? structuredClone(record) : undefined;
     }
 
-    async listPending(limit: number): Promise<StoredCapture[]> {
+    async listPending(limit: number, offset = 0): Promise<StoredCapture[]> {
         const db = await this.getDb();
         const pending = await db.getAllFromIndex('captures', 'by-upload-status', 'pending');
         const failed = await db.getAllFromIndex('captures', 'by-upload-status', 'failed');
         return [...pending, ...failed]
             .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
-            .slice(0, Math.max(0, limit))
+            .slice(Math.max(0, offset), Math.max(0, offset) + Math.max(0, limit))
             .map((record) => structuredClone(record));
     }
 
@@ -78,6 +79,10 @@ export class IndexedDBCaptureStore implements CaptureStore {
         for (const record of recovered) await tx.store.put(record);
         await tx.done;
         return recovered.length;
+    }
+
+    async enrichAcknowledged(capture: PM5CompletedCapture, enrichedAt: string): Promise<StoredCapture> {
+        return this.update(capture.captureId, (record) => enrichAcknowledgedStoredCapture(record, capture, enrichedAt));
     }
 
     async beginUpload(captureId: string, attemptedAt: string): Promise<StoredCapture> {

@@ -19,7 +19,8 @@ class FakeSQLiteDatabase implements CaptureSQLiteDatabase {
                 ? record.uploadStatus === 'uploading'
                 : record.uploadStatus === 'pending' || record.uploadStatus === 'failed')
             .sort((a, b) => a.record.createdAt.localeCompare(b.record.createdAt));
-        const limited = uploadingOnly ? rows : rows.slice(0, Number(values[0]));
+        const offset = Number(values[1] ?? 0);
+        const limited = uploadingOnly ? rows : rows.slice(offset, offset + Number(values[0]));
         return { values: limited.map(({ json }) => ({ record_json: json })) };
     }
 
