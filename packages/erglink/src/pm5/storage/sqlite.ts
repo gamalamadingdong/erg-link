@@ -5,6 +5,7 @@ import {
     acknowledgeStoredCapture,
     beginStoredCaptureUpload,
     failStoredCaptureUpload,
+    recoverStoredCaptureUpload,
     type CaptureAcknowledgement,
     type CaptureStore,
     type StoredCapture,
@@ -77,6 +78,20 @@ export class MobileSQLiteCaptureStore implements CaptureStore {
             .map(parseRecord)
             .filter((record): record is StoredCapture => !!record)
             .map((record) => structuredClone(record));
+    }
+
+    async recoverStaleUploads(staleBefore: string, recoveredAt: string): Promise<number> {
+        const db = await this.getDb();
+        const result = await db.query(
+            "SELECT record_json FROM pm5_captures WHERE upload_status = 'uploading'",
+        );
+        const recovered = ((result.values ?? []) as CaptureRow[])
+            .map(parseRecord)
+            .filter((record): record is StoredCapture => !!record)
+            .map((record) => recoverStoredCaptureUpload(record, staleBefore, recoveredAt))
+            .filter((record): record is StoredCapture => !!record);
+        for (const record of recovered) await this.put(record);
+        return recovered.length;
     }
 
     async beginUpload(captureId: string, attemptedAt: string): Promise<StoredCapture> {

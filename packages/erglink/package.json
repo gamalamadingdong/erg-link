@@ -1,6 +1,6 @@
 {
   "name": "@readyall/erglink",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Shared Concept2 performance-monitor protocol, programming, capture, and durable storage core",
   "type": "module",
   "main": "./dist/index.js",

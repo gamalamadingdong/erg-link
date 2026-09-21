@@ -78,6 +78,21 @@ test('persists retry state without changing capture identity', async () => {
     assert.equal(record?.lastError, undefined);
 });
 
+test('recovers uploads interrupted before acknowledgement', async () => {
+    const store = new MemoryCaptureStore();
+    await store.save(completedCapture('capture-interrupted'), '2026-09-19T16:00:00.000Z');
+    await store.beginUpload('capture-interrupted', '2026-09-19T16:01:00.000Z');
+
+    assert.equal(await store.recoverStaleUploads(
+        '2026-09-19T16:02:00.000Z',
+        '2026-09-19T16:03:00.000Z',
+    ), 1);
+    const record = await store.get('capture-interrupted');
+    assert.equal(record?.uploadStatus, 'failed');
+    assert.equal(record?.lastError, 'Recovered interrupted PM5 capture upload');
+    assert.equal((await store.listPending(10)).length, 1);
+});
+
 test('acknowledges upstream persistence and makes the capture immutable', async () => {
     const store = new MemoryCaptureStore();
     await store.save(completedCapture('capture-1'), '2026-09-19T16:00:00.000Z');
