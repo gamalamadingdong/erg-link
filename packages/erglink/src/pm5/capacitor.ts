@@ -6,6 +6,7 @@
  */
 
 import { BleClient, type BleDevice, type ScanResult } from '@capacitor-community/bluetooth-le';
+import { buildPM5ScanOptions } from './scan.js';
 import type {
     PM5CaptureEvidence,
     PM5ConnectionState,
@@ -119,10 +120,7 @@ export class PM5CapacitorDriver implements PM5Driver {
 
         try {
             await BleClient.requestLEScan(
-                {
-                    services: [PM5_SERVICES.PM5],
-                    namePrefix: 'PM5',
-                },
+                buildPM5ScanOptions(),
                 (result: ScanResult) => {
                     console.log('[NativeBluetooth] Found device:', result.device.name);
 
