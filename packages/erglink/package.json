@@ -1,6 +1,6 @@
 {
   "name": "@readyall/erglink",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Shared Concept2 performance-monitor protocol, programming, capture, and durable storage core",
   "type": "module",
   "main": "./dist/index.js",
@@ -36,7 +36,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --test src/pm5/protocol/*.test.ts src/pm5/storage/*.test.ts",
+    "test": "tsx --test src/pm5/*.test.ts src/pm5/protocol/*.test.ts src/pm5/storage/*.test.ts",
     "prepublishOnly": "npm run test && npm run build"
   },
   "license": "MIT",
